@@ -286,7 +286,7 @@ function App() {
         return (
           <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden no-scrollbar relative z-10 pt-2 flex snap-x snap-mandatory">
             {devices.length === 0 ? (
-              <div className="min-w-full snap-center flex flex-col items-center justify-center p-8">
+              <div className="min-w-full snap-center flex flex-col items-center p-8">
                 <div className="bg-white/10 backdrop-blur-xl rounded-[3rem] p-10 text-center border border-white/20 shadow-2xl w-full flex flex-col items-center transform hover:scale-105 transition-transform duration-500">
                   <div className="relative">
                     <div className="absolute inset-0 bg-green-400/30 blur-2xl rounded-full"></div>
