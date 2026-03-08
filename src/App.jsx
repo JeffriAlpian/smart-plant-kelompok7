@@ -129,7 +129,7 @@ function App() {
     switch (activeTab) {
       case "History":
         return <HistoryTab devices={devices} />;
-        
+
       case "Alarm":
         return (
           <div className="flex-1 min-h-0 w-full px-6 pt-4 pb-24 overflow-y-auto animate-fadeIn no-scrollbar">
@@ -237,7 +237,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 font-sans flex justify-center text-white sm:py-6 selection:bg-green-300">
+    <div className="max-h-screen bg-slate-900 font-sans flex justify-center text-white sm:py-6 selection:bg-green-300">
       <div className="w-full bg-linear-to-b from-[#6EB5FF] via-[#85C4FF] to-[#A3D180] relative overflow-hidden sm:rounded-[3rem] sm:border-[8px] sm:border-black/10 sm:shadow-2xl flex flex-col h-[100dvh] sm:h-[850px] shadow-none">
         {/* Dekorasi Awan Belakang dengan Lucide */}
         <Cloud
