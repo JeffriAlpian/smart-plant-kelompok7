@@ -237,8 +237,8 @@ function App() {
   };
 
   return (
-    <div className="max-h-screen bg-slate-900 font-sans flex justify-center text-white sm:py-6 selection:bg-green-300">
-      <div className="w-full bg-linear-to-b from-[#6EB5FF] via-[#85C4FF] to-[#A3D180] relative overflow-hidden sm:rounded-[3rem] sm:border-[8px] sm:border-black/10 sm:shadow-2xl flex flex-col h-[100dvh] sm:h-[850px] shadow-none">
+    <div className="h-screen font-sans flex justify-center text-white sm:py-6 selection:bg-green-300">
+      <div className="w-full bg-linear-to-b from-[#6EB5FF] via-[#85C4FF] to-[#A3D180] relative overflow-hidden sm:rounded-[3rem] sm:border-8 sm:border-black/10 sm:shadow-2xl flex flex-col h-dvh sm:h-212.5 shadow-none">
         {/* Dekorasi Awan Belakang dengan Lucide */}
         <Cloud
           size={100}
@@ -289,7 +289,7 @@ function App() {
 
           <div
             onClick={() => setShowAddForm(true)}
-            className="relative -top-8 bg-gradient-to-b from-green-300 to-green-500 w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_20px_rgba(74,222,128,0.4)] border-4 border-[#A3D180] cursor-pointer transform hover:scale-110 active:scale-95 transition-all text-white"
+            className="relative -top-8 bg-linear-to-b from-green-300 to-green-500 w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_20px_rgba(74,222,128,0.4)] border-4 border-[#A3D180] cursor-pointer transform hover:scale-110 active:scale-95 transition-all text-white"
           >
             <Plus size={32} strokeWidth={3} className="drop-shadow-md" />
           </div>
@@ -383,7 +383,7 @@ const NavIcon = ({ Icon, label, active, onClick }) => (
     className={`flex flex-col items-center cursor-pointer transition-all duration-300 ${active ? "opacity-100 transform -translate-y-1 scale-110" : "opacity-50 hover:opacity-80"}`}
   >
     <div
-      className={`mb-1 transition-all ${active ? "bg-white/30 rounded-xl p-1.5 shadow-sm" : "p-1.5"}`}
+      className={`mb-1 transition-all ${active ? "bg-emerald-500 rounded-xl p-1.5 shadow-sm" : "p-1.5"}`}
     >
       <Icon
         size={22}
