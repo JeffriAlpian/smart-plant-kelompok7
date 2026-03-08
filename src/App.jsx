@@ -161,26 +161,29 @@ function App() {
     }
   };
 
-// 6. PUSAT UPDATE ALARM/NOTIFIKASI
+  // 6. PUSAT UPDATE ALARM/NOTIFIKASI
   const handleToggleNotification = async () => {
     if (!currentUser) return;
-    
+
     // Optimistic UI update (ubah di layar dulu agar responsif)
     const newValue = !notificationsEnabled;
-    setNotificationsEnabled(newValue); 
-    
+    setNotificationsEnabled(newValue);
+
     try {
       // Simpan perubahan ke database
-      await setDoc(doc(db, "users", currentUser.uid), { 
-        notificationsEnabled: newValue 
-      }, { merge: true });
+      await setDoc(
+        doc(db, "users", currentUser.uid),
+        {
+          notificationsEnabled: newValue,
+        },
+        { merge: true },
+      );
     } catch (error) {
       console.error("Gagal mengupdate pengaturan notifikasi:", error);
       // Rollback jika gagal
-      setNotificationsEnabled(!newValue); 
+      setNotificationsEnabled(!newValue);
     }
   };
-
 
   // =================================================================
 
@@ -219,13 +222,17 @@ function App() {
             </h2>
             <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-xl mb-4 transition-all duration-300">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-white font-bold text-lg">Notifikasi Kering</h3>
-                
+                <h3 className="text-white font-bold text-lg">
+                  Notifikasi Kering
+                </h3>
+
                 {/* Custom Toggle Switch Animasi */}
                 <div
                   onClick={handleToggleNotification}
                   className={`w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 shadow-inner flex items-center ${
-                    notificationsEnabled ? "bg-green-400 border-green-300" : "bg-black/30 border-white/10"
+                    notificationsEnabled
+                      ? "bg-green-400 border-green-300"
+                      : "bg-black/30 border-white/10"
                   } border`}
                 >
                   <div
@@ -233,12 +240,16 @@ function App() {
                       notificationsEnabled ? "translate-x-7" : "translate-x-0"
                     }`}
                   >
-                    {notificationsEnabled && <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>}
+                    {notificationsEnabled && (
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              <p className={`text-xs font-medium transition-colors duration-300 ${notificationsEnabled ? "text-white/80" : "text-white/50"}`}>
+
+              <p
+                className={`text-xs font-medium transition-colors duration-300 ${notificationsEnabled ? "text-white/80" : "text-white/50"}`}
+              >
                 Kirim peringatan ke HP jika kelembaban di bawah 30%.
               </p>
             </div>
@@ -333,7 +344,7 @@ function App() {
 
   return (
     <div
-      className={`h-screen font-sans flex justify-center text-white sm:py-6 selection:bg-green-300 bg-gray-900 transition-colors duration-1000`}
+      className={`h-screen font-sans flex justify-center text-white sm:py-6 selection:bg-green-300 bg-gray-900 transition-colors duration-1000 pb-40`}
     >
       <div
         className={`w-full bg-linear-to-b ${bgGradient} relative overflow-hidden sm:rounded-[3rem] sm:border-8 sm:border-black/20 sm:shadow-2xl flex flex-col h-dvh sm:h-212.5 transition-all duration-1000 ease-in-out`}
@@ -421,48 +432,48 @@ function App() {
 
         {/* BOTTOM NAVIGATION (Gaya Glassmorphism) */}
         <div className="absolute bottom-4 left-6 right-6 bg-white/10 backdrop-blur-xl px-4 py-3 rounded-[2rem] flex justify-between items-center border border-white/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] z-50">
-  <NavIcon
-    Icon={Home}
-    label="Home"
-    active={activeTab === "Home"}
-    onClick={() => setActiveTab("Home")}
-    isNight={isNight}
-  />
-  <NavIcon
-    Icon={History}
-    label="Logs"
-    active={activeTab === "History"}
-    onClick={() => setActiveTab("History")}
-    isNight={isNight}
-  />
+          <NavIcon
+            Icon={Home}
+            label="Home"
+            active={activeTab === "Home"}
+            onClick={() => setActiveTab("Home")}
+            isNight={isNight}
+          />
+          <NavIcon
+            Icon={History}
+            label="Logs"
+            active={activeTab === "History"}
+            onClick={() => setActiveTab("History")}
+            isNight={isNight}
+          />
 
-  {/* Tombol Plus Diperkecil */}
-  <div
-    onClick={() => setShowAddForm(true)}
-    className={`relative -top-6 ${
-      isNight 
-        ? "bg-linear-to-b from-indigo-400 to-purple-500 shadow-[0_8px_20px_rgba(99,102,241,0.5)] border-indigo-300" 
-        : "bg-linear-to-b from-green-300 to-green-500 shadow-[0_8px_20px_rgba(74,222,128,0.5)] border-[#A3D180]"
-    } w-14 h-14 rounded-full flex items-center justify-center border-[3px] cursor-pointer transform hover:scale-110 active:scale-95 transition-all text-white`}
-  >
-    <Plus size={28} strokeWidth={3} className="drop-shadow-lg" />
-  </div>
+          {/* Tombol Plus Diperkecil */}
+          <div
+            onClick={() => setShowAddForm(true)}
+            className={`relative -top-6 ${
+              isNight
+                ? "bg-linear-to-b from-indigo-400 to-purple-500 shadow-[0_8px_20px_rgba(99,102,241,0.5)] border-indigo-300"
+                : "bg-linear-to-b from-green-300 to-green-500 shadow-[0_8px_20px_rgba(74,222,128,0.5)] border-[#A3D180]"
+            } w-14 h-14 rounded-full flex items-center justify-center border-[3px] cursor-pointer transform hover:scale-110 active:scale-95 transition-all text-white`}
+          >
+            <Plus size={28} strokeWidth={3} className="drop-shadow-lg" />
+          </div>
 
-  <NavIcon
-    Icon={AlarmClock}
-    label="Alarm"
-    active={activeTab === "Alarm"}
-    onClick={() => setActiveTab("Alarm")}
-    isNight={isNight}
-  />
-  <NavIcon
-    Icon={User}
-    label="Profile"
-    active={activeTab === "Profile"}
-    onClick={() => setActiveTab("Profile")}
-    isNight={isNight}
-  />
-</div>
+          <NavIcon
+            Icon={AlarmClock}
+            label="Alarm"
+            active={activeTab === "Alarm"}
+            onClick={() => setActiveTab("Alarm")}
+            isNight={isNight}
+          />
+          <NavIcon
+            Icon={User}
+            label="Profile"
+            active={activeTab === "Profile"}
+            onClick={() => setActiveTab("Profile")}
+            isNight={isNight}
+          />
+        </div>
 
         {/* MODAL TAMBAH POT */}
         {showAddForm && (
