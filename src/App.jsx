@@ -273,7 +273,7 @@ function App() {
         {renderTabContent()}
 
         {/* BOTTOM NAVIGATION BAR */}
-        <div className="absolute bottom-6 left-6 right-6 bg-white/30 backdrop-blur-xl px-4 py-4 rounded-4xl flex justify-between items-center border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50">
+        <div className="absolute bottom-6 left-6 right-6 bg-white/30 backdrop-blur-xl px-4 py-4 rounded-[2rem] flex justify-between items-center border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50">
           <NavIcon
             Icon={Home}
             label="Home"
@@ -383,7 +383,7 @@ const NavIcon = ({ Icon, label, active, onClick }) => (
     className={`flex flex-col items-center cursor-pointer transition-all duration-300 ${active ? "opacity-100 transform -translate-y-1 scale-110" : "opacity-50 hover:opacity-80"}`}
   >
     <div
-      className={`mb-1 transition-all ${active ? "bg-emerald-500 rounded-xl p-1.5 shadow-sm" : "p-1.5"}`}
+      className={`mb-1 transition-all ${active ? " bg-emerald-500 rounded-xl p-1.5 shadow-sm" : "p-1.5"}`}
     >
       <Icon
         size={22}

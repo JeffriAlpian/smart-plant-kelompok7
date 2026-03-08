@@ -7,7 +7,7 @@ import { Droplet, Bot, Sparkles, Frown, Smile } from 'lucide-react';
 // --- KOMPONEN 1: Animasi Hujan Murni CSS ---
 // (Bagian RainAnimation dan CuteSucculent tetap sama, tidak perlu diubah, biarkan seperti kode sebelumnya)
 const RainAnimation = () => (
-  <div className="absolute inset-0 -top-12.5 overflow-hidden pointer-events-none z-30 flex justify-center w-full h-75">
+  <div className="absolute inset-0 -top-12.5 overflow-hidden pointer-events-none z-30 flex justify-center w-full h-[300px]">
     <style>{`
       @keyframes rainDrop {
         0% { transform: translateY(0px) scaleY(1); opacity: 0; }
@@ -26,9 +26,6 @@ const RainAnimation = () => (
     ))}
   </div>
 );
-
-// const CuteSucculent = ({ isWatering }) => (
-  // import React from 'react';
 
 const CuteSucculent = ({ moisture }) => {
   // Tentukan apakah tanaman sedang kehausan (misal: kelembaban di bawah 30%)
@@ -215,7 +212,7 @@ const VaseCard = ({ deviceId, moisture, userId }) => {
 
         <div className="w-full bg-black/10 rounded-full h-5 backdrop-blur-md overflow-hidden border border-white/20 p-1 shadow-inner relative">
           <div 
-            className={`h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm ${isThirsty ? 'bg-red-400' : 'bg-linear-to-r from-white to-green-100'}`} 
+            className={`h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm ${isThirsty ? 'bg-red-400' : 'bg-gradient-to-r from-white to-green-100'}`} 
             style={{ width: `${safeMoisture}%` }}
           >
             {isThirsty && <div className="absolute inset-0 bg-white/30 animate-pulse rounded-full"></div>}
