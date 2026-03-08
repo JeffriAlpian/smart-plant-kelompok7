@@ -1,282 +1,179 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  doc,
-  setDoc,
-  onSnapshot,
-  collection,
-  query,
-  orderBy,
-  limit,
-  deleteDoc,
-  writeBatch,
-} from "firebase/firestore";
-import { db } from "./firebase";
-import { Droplet, Bot, Sparkles, Frown, Smile, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Droplet, Bot, Sparkles, Frown, Smile, Trash2, Activity } from "lucide-react";
 
+// --- ANIMASI HUJAN ---
 const RainAnimation = () => (
-  <div className="absolute inset-0 -top-12.5 overflow-hidden pointer-events-none z-30 flex justify-center w-full h-75">
+  <div className="absolute inset-0 -top-12 overflow-hidden pointer-events-none z-30 flex justify-center w-full h-75">
     <style>{`
       @keyframes rainDrop {
-        0% { transform: translateY(0px) scaleY(1); opacity: 0; }
+        0% { transform: translateY(-20px) scaleY(1); opacity: 0; }
         10% { opacity: 1; }
         80% { transform: translateY(180px) scaleY(1.5); opacity: 1; }
         100% { transform: translateY(200px) scaleY(0.5); opacity: 0; }
       }
       .drop {
-        position: absolute; width: 3px; height: 15px;
-        background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(150, 200, 255, 0.9));
-        border-radius: 50%; animation: rainDrop 0.7s linear infinite;
+        position: absolute; width: 3px; height: 18px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(167, 216, 255, 0.9));
+        border-radius: 50%; 
+        animation: rainDrop 0.6s linear infinite;
       }
     `}</style>
-    {[...Array(12)].map((_, i) => (
+    {[...Array(15)].map((_, i) => (
       <div
         key={i}
         className="drop"
         style={{
           left: `${15 + Math.random() * 70}%`,
           animationDelay: `${Math.random() * 0.8}s`,
-          animationDuration: `${0.5 + Math.random() * 0.3}s`,
+          animationDuration: `${0.4 + Math.random() * 0.3}s`,
         }}
       />
     ))}
   </div>
 );
 
-const CuteSucculent = ({ moisture }) => {
+// --- KARAKTER PET LUCU ---
+const KawaiiPlant = ({ moisture, isWatering }) => {
   const isThirsty = moisture < 30;
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
+    <div className="flex flex-col items-center justify-center p-4 relative">
       <style>
         {`
           @keyframes swayHappy {
-            0%, 100% { transform: rotate(-4deg) scale(1); }
-            50% { transform: rotate(4deg) scale(1.03); }
+            0%, 100% { transform: rotate(-3deg) scale(1); }
+            50% { transform: rotate(3deg) scale(1.02); }
           }
           @keyframes swaySad {
-            0%, 100% { transform: rotate(15deg) scale(0.9); }
-            50% { transform: rotate(18deg) scale(0.88); }
+            0%, 100% { transform: rotate(10deg) scale(0.95); }
+            50% { transform: rotate(12deg) scale(0.93); }
+          }
+          @keyframes blink {
+            0%, 48%, 52%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.1); }
           }
           .animate-plant-happy {
-            animation: swayHappy 3s ease-in-out infinite;
-            transform-origin: bottom center;
+            animation: swayHappy 4s ease-in-out infinite;
+            transform-origin: 100px 140px;
           }
           .animate-plant-sad {
-            animation: swaySad 4s ease-in-out infinite;
-            transform-origin: bottom center;
-            filter: grayscale(${isThirsty ? "40%" : "0%"}) drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+            animation: swaySad 5s ease-in-out infinite;
+            transform-origin: 100px 140px;
+            filter: grayscale(${isThirsty && !isWatering ? "30%" : "0%"});
             transition: all 1s ease;
+          }
+          .eye-blink {
+            animation: blink 4s infinite;
+            transform-origin: center;
           }
         `}
       </style>
+      
+      <div className={`absolute inset-0 blur-3xl rounded-full opacity-30 transition-colors duration-1000 z-0 ${isThirsty && !isWatering ? 'bg-red-500' : 'bg-green-400'}`}></div>
+
       <div
-        className={`w-40 h-40 transition-all duration-1000 ${isThirsty ? "animate-plant-sad" : "animate-plant-happy"}`}
+        className={`w-44 h-44 z-10 transition-all duration-1000 ${
+          isThirsty && !isWatering ? "animate-plant-sad" : "animate-plant-happy"
+        }`}
       >
-        <svg
-          viewBox="0 0 200 200"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full drop-shadow-xl"
-        >
+        <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl">
+          {/* Pot */}
+          <path d="M55 140 L145 140 L130 190 L70 190 Z" fill={isThirsty ? "#92400e" : "#d97706"} className="transition-colors duration-1000" />
+          <rect x="50" y="135" width="100" height="15" rx="4" fill={isThirsty ? "#78350f" : "#b45309"} className="transition-colors duration-1000" />
+          
+          {/* Badan Kaktus */}
           <path
-            d="M100 120 C 60 120, 30 90, 40 50 C 70 60, 90 90, 100 120 Z"
-            fill={isThirsty ? "#9ca3af" : "#4ade80"}
-            className="transition-colors duration-1000"
+            d={isThirsty && !isWatering 
+              ? "M75 135 Q70 80 120 75 Q135 100 125 135 Z" 
+              : "M65 135 Q65 50 100 45 Q135 50 135 135 Z"} 
+            fill={isThirsty && !isWatering ? "#86efac" : "#4ade80"}
+            className="transition-all duration-1000"
           />
-          <path
-            d="M100 120 C 140 120, 170 90, 160 50 C 130 60, 110 90, 100 120 Z"
-            fill={isThirsty ? "#6b7280" : "#22c55e"}
-            className="transition-colors duration-1000"
+          <path 
+            d={isThirsty && !isWatering ? "M100 135 Q95 100 115 77" : "M100 135 L100 45"} 
+            stroke="#22c55e" strokeWidth="3" fill="none" className="transition-all duration-1000"
           />
-          <path
-            d="M95 120 Q 100 180 100 150 Q 100 180 105 120 Z"
-            fill="#166534"
-          />
-          <path d="M70 150 L 130 150 L 120 190 L 80 190 Z" fill="#d97706" />
-          <rect x="65" y="140" width="70" height="10" rx="3" fill="#b45309" />
-          {isThirsty ? (
-            <g>
-              <line
-                x1="85"
-                y1="165"
-                x2="92"
-                y2="165"
-                stroke="#78350f"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <line
-                x1="108"
-                y1="165"
-                x2="115"
-                y2="165"
-                stroke="#78350f"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 95 175 Q 100 170 105 175"
-                fill="none"
-                stroke="#78350f"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </g>
-          ) : (
-            <g>
-              <path
-                d="M 85 165 Q 88 160 92 165"
-                fill="none"
-                stroke="#78350f"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 108 165 Q 111 160 115 165"
-                fill="none"
-                stroke="#78350f"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 95 172 Q 100 178 105 172"
-                fill="none"
-                stroke="#78350f"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </g>
-          )}
+
+          {/* Wajah */}
+          <g transform={isThirsty && !isWatering ? "translate(15, 15) rotate(15, 100, 100)" : "translate(0, 0)"} className="transition-all duration-1000">
+            {isWatering ? (
+              <>
+                <path d="M80 85 Q85 80 90 85" stroke="#111827" strokeWidth="3" fill="none" strokeLinecap="round" />
+                <path d="M110 85 Q115 80 120 85" stroke="#111827" strokeWidth="3" fill="none" strokeLinecap="round" />
+                <path d="M95 100 Q100 115 105 100 Z" fill="#111827" />
+                <path d="M97 105 Q100 110 103 105 Z" fill="#ef4444" />
+              </>
+            ) : isThirsty ? (
+              <>
+                <line x1="80" y1="85" x2="90" y2="90" stroke="#111827" strokeWidth="3" strokeLinecap="round" />
+                <line x1="110" y1="90" x2="120" y2="85" stroke="#111827" strokeWidth="3" strokeLinecap="round" />
+                <path d="M93 105 Q100 100 107 105" stroke="#111827" strokeWidth="3" fill="none" strokeLinecap="round" />
+                <circle cx="82" cy="98" r="4" fill="#fca5a5" opacity="0.4" />
+                <circle cx="118" cy="98" r="4" fill="#fca5a5" opacity="0.4" />
+                <path d="M125 75 Q128 85 125 90 Q122 85 125 75 Z" fill="#60a5fa" opacity="0.7" />
+              </>
+            ) : (
+              <>
+                <circle cx="85" cy="88" r="5" fill="#111827" className="eye-blink" />
+                <circle cx="115" cy="88" r="5" fill="#111827" className="eye-blink" />
+                <circle cx="75" cy="98" r="5" fill="#fca5a5" opacity="0.7" />
+                <circle cx="125" cy="98" r="5" fill="#fca5a5" opacity="0.7" />
+                <path d="M93 100 Q100 108 107 100" stroke="#111827" strokeWidth="3" fill="none" strokeLinecap="round" />
+              </>
+            )}
+          </g>
         </svg>
       </div>
-      <div className="mt-4 text-center">
-        <h3 className="text-white font-black text-xl drop-shadow-md">
-          {isThirsty ? "Aku Haus... 🥺" : "Segar Banget! 🌿"}
+      <div className="mt-2 text-center z-10">
+        <h3 className="text-white font-black text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">
+          {isWatering ? "Aaaah Segar! 💦" : isThirsty ? "Haus Banget... 🥺" : "Aku Sehat! 🌿"}
         </h3>
       </div>
     </div>
   );
 };
 
-// TAMBAHKAN onDeleteSuccess di props ini
-const VaseCard = ({ deviceId, moisture, userId, onDeleteSuccess }) => {
+// --- KOMPONEN UTAMA (TanPA FIREBASE) ---
+const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
   const [isWatering, setIsWatering] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [autoMode, setAutoMode] = useState(false);
-  const [lastWaterTime, setLastWaterTime] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const threshold = 30;
-  const cooldown = 30000;
+  const cooldown = 30000; 
 
-  const prefRef = doc(db, "users", userId, "preferences", deviceId);
+  const safeMoisture = Math.min(100, Math.max(0, device.moisture || 0));
+  const isThirsty = safeMoisture < threshold;
 
+  // Logika Auto Menyiram
   useEffect(() => {
-    const unsub = onSnapshot(prefRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setAutoMode(data.autoMode || false);
-        setLastWaterTime(data.lastWaterTime || 0);
-      } else {
-        setDoc(prefRef, { autoMode: false, lastWaterTime: 0 }).catch((err) =>
-          console.error(err),
-        );
+    if (device.autoMode && safeMoisture < threshold && !isWatering) {
+      // Cek cooldown agar tidak spam
+      if (Date.now() - (device.lastWaterTime || 0) > cooldown) {
+        triggerWatering();
       }
-    });
-    return unsub;
-  }, [userId, deviceId]);
-  const toggleAutoMode = useCallback(async () => {
-    const newMode = !autoMode;
-    setAutoMode(newMode);
-    try {
-      await setDoc(prefRef, { autoMode: newMode }, { merge: true });
-    } catch (error) {
-      setAutoMode(autoMode);
     }
-  }, [autoMode, prefRef]);
-  useEffect(() => {
-    if (lastWaterTime > 0) {
-      setDoc(prefRef, { lastWaterTime }, { merge: true }).catch((err) =>
-        console.error(err),
-      );
-    }
-  }, [lastWaterTime, prefRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [device.autoMode, safeMoisture, isWatering, device.lastWaterTime]);
 
-  useEffect(() => {
-    const readingsRef = collection(db, "devices", deviceId, "readings");
-    const q = query(readingsRef, orderBy("timestamp", "desc"), limit(10));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs
-        .map((doc) => ({
-          moisture: doc.data().moisture,
-          timestamp:
-            doc.data().timestamp?.toDate().toISOString() ||
-            new Date().toISOString(),
-        }))
-        .reverse();
-      setHistory(data);
-    });
-    return unsub;
-  }, [deviceId]);
-
-  useEffect(() => {
-    if (
-      autoMode &&
-      moisture < threshold &&
-      !isWatering &&
-      Date.now() - lastWaterTime > cooldown
-    ) {
-      handleWater();
-    }
-  }, [autoMode, moisture, isWatering, lastWaterTime]);
-
-  const handleWater = async () => {
+  const triggerWatering = async () => {
+    if (isWatering) return;
+    
     setIsWatering(true);
-    setLastWaterTime(Date.now());
-    setTimeout(async () => {
-      try {
-        const deviceRef = doc(db, "devices", deviceId);
-        await setDoc(deviceRef, { moisture: 80 }, { merge: true });
-        const readingsRef = collection(db, "devices", deviceId, "readings");
-        await setDoc(doc(readingsRef), { moisture: 80, timestamp: new Date() });
-      } catch (err) {}
+    await onWater(); // Memanggil fungsi penyiraman dari App.jsx
+    
+    // Tahan animasi selama 3 detik
+    setTimeout(() => {
       setIsWatering(false);
-    }, 5000);
+    }, 3000);
   };
 
-  const handleDeleteVase = async () => {
-    // 1. Munculkan konfirmasi agar tidak tidak sengaja terhapus (Opsional)
-    const isConfirmed = window.confirm(
-      "Apakah Anda yakin ingin menghapus pot ini?",
-    );
+  const triggerDelete = async () => {
+    const isConfirmed = window.confirm("Apakah kamu yakin ingin menghapus pot ini dari taman?");
     if (!isConfirmed) return;
 
-    try {
-      // 2. Siapkan proses Batch
-      const batch = writeBatch(db);
-
-      // 3. Tentukan jalur data pertama yang mau dihapus (Dari profil user)
-      const userPrefRef = doc(db, "users", userId, "preferences", deviceId);
-      batch.delete(userPrefRef);
-
-      // 4. Tentukan jalur data kedua yang mau dihapus (Dari daftar devices)
-      const deviceRef = doc(db, "devices", deviceId);
-      batch.delete(deviceRef);
-
-      // 5. Eksekusi penghapusan keduanya secara bersamaan!
-      await batch.commit();
-
-      console.log("Pot berhasil dihapus sepenuhnya dari database!");
-
-      // Ingat: Anda tidak perlu memanggil fungsi update tampilan manual di sini,
-      // karena onSnapshot di App.jsx akan otomatis mendeteksi perubahan dan memperbarui layar!
-    } catch (error) {
-      console.error("Gagal menghapus pot: ", error);
-      alert("Terjadi kesalahan saat menghapus pot.");
-    }
+    setIsDeleting(true);
+    await onDelete(); // Memanggil fungsi hapus dari App.jsx
   };
-
-  const safeMoisture = Math.min(100, Math.max(0, moisture || 0));
-  const isThirsty = safeMoisture < threshold;
 
   const formatTimeStr = (timestamp) => {
     if (!timestamp) return "--:--";
@@ -289,132 +186,120 @@ const VaseCard = ({ deviceId, moisture, userId, onDeleteSuccess }) => {
   };
 
   const getPetMood = () => {
-    if (isWatering)
-      return (
-        <>
-          <Sparkles size={16} className="inline mr-1 text-blue-400" /> Segar!
-        </>
-      );
-    if (isThirsty)
-      return (
-        <>
-          <Frown size={16} className="inline mr-1" /> Haus...
-        </>
-      );
-    return (
-      <>
-        <Smile size={16} className="inline mr-1" /> Bahagia
-      </>
-    );
+    if (isWatering) return <><Sparkles size={16} className="inline mr-1 text-blue-500" /> Wuuusshh!</>;
+    if (isThirsty) return <><Frown size={16} className="inline mr-1" /> Help!</>;
+    return <><Smile size={16} className="inline mr-1" /> Nyaman</>;
   };
 
   return (
-    <div className="flex flex-col min-h-full w-full max-w-sm mx-auto pt-16 pb-8">
-      <div className="relative w-full flex justify-center -mb-6 z-20 pointer-events-none mt-auto">
+    <div className={`flex flex-col min-h-full w-full max-w-sm mx-auto pt-16 pb-8 transition-opacity duration-500 ${isDeleting ? "opacity-0 scale-95" : "opacity-100 scale-100"}`}>
+      
+      {/* SECTION PET */}
+      <div className="relative w-full flex justify-center -mb-8 z-20 pointer-events-none mt-auto">
         <div
-          className={`absolute -top-4 bg-white px-4 py-2 rounded-2xl shadow-xl border-2 z-40 transition-all duration-300 flex items-center justify-center ${isThirsty ? "border-red-400 text-red-500 animate-bounce" : "border-green-100 text-[#81B95B]"}`}
+          className={`absolute -top-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-xl border-2 z-40 transition-all duration-300 flex items-center justify-center 
+            ${isWatering ? "border-blue-300 text-blue-600 animate-bounce" : 
+              isThirsty ? "border-red-400 text-red-500 animate-pulse" : "border-green-200 text-[#6ea34a]"}`}
         >
           <span className="text-sm font-extrabold tracking-wide flex items-center">
             {getPetMood()}
           </span>
-          <div
-            className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 rotate-45"
-            style={{ borderColor: "inherit" }}
-          ></div>
+          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white/90 border-b-2 border-r-2 rotate-45" style={{ borderColor: "inherit" }}></div>
         </div>
 
         {isWatering && <RainAnimation />}
-        <div className={isThirsty && !isWatering ? "animate-pulse" : ""}>
-          <CuteSucculent moisture={safeMoisture} />
-        </div>
+        <KawaiiPlant moisture={safeMoisture} isWatering={isWatering} />
       </div>
 
-      <div className="bg-white/20 backdrop-blur-xl border border-white/40 w-full rounded-[2.5rem] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.1)] relative z-10 flex flex-col gap-5">
+      {/* SECTION KARTU KONTROL */}
+      <div className="bg-white/10 backdrop-blur-2xl border border-white/30 w-full rounded-[2.5rem] p-7 shadow-[0_20px_50px_rgba(0,0,0,0.15)] relative z-10 flex flex-col gap-6">
+        
+        {/* Tombol Hapus */}
         <button
-          onClick={handleDeleteVase}
+          onClick={triggerDelete}
           disabled={isDeleting}
-          className="absolute top-5 right-5 z-50 p-2 rounded-full text-white/60 hover:text-red-400 hover:bg-white/20 transition-all duration-300 disabled:opacity-50"
+          className="absolute top-5 right-5 z-50 p-2.5 rounded-full text-white/50 bg-black/10 hover:bg-red-500 hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-300 disabled:opacity-50 group"
           title="Hapus Pot"
         >
-          <Trash2 size={20} className={isDeleting ? "animate-spin" : ""} />
+          <Trash2 size={18} className={`${isDeleting ? "animate-spin" : "group-hover:scale-110"}`} />
         </button>
 
-        <div className="text-center">
-          <h2
-            className={`text-5xl font-black tracking-tighter drop-shadow-sm ${isThirsty ? "text-red-100" : "text-white"}`}
-          >
+        {/* Info Kelembapan */}
+        <div className="text-center mt-2">
+          <h2 className={`text-6xl font-black tracking-tighter drop-shadow-md transition-colors duration-500 ${isThirsty && !isWatering ? "text-red-300" : "text-white"}`}>
             {safeMoisture}%
           </h2>
-          <p className="text-white/80 font-bold text-xs tracking-[0.2em] uppercase mt-1">
-            Kelembaban • {deviceId}
+          <p className="text-white/80 font-bold text-xs tracking-[0.25em] uppercase mt-2 flex items-center justify-center gap-1.5">
+            <Activity size={12} className={isThirsty && !isWatering ? "animate-pulse text-red-300" : "text-green-300"} />
+            ID • {device.id}
           </p>
         </div>
 
-        <div className="w-full bg-black/10 rounded-full h-5 backdrop-blur-md overflow-hidden border border-white/20 p-1 shadow-inner relative">
+        {/* Progress Bar */}
+        <div className="w-full bg-black/20 rounded-full h-6 backdrop-blur-md overflow-hidden border border-white/20 p-1 shadow-inner relative">
           <div
-            className={`h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm ${isThirsty ? "bg-red-400" : "bg-linear-to-r from-white to-green-100"}`}
+            className={`h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm 
+              ${isWatering ? "bg-gradient-to-r from-blue-400 to-cyan-300" : 
+                isThirsty ? "bg-gradient-to-r from-red-500 to-orange-400" : 
+                "bg-gradient-to-r from-green-300 to-emerald-400"}`}
             style={{ width: `${safeMoisture}%` }}
           >
-            {isThirsty && (
-              <div className="absolute inset-0 bg-white/30 animate-pulse rounded-full"></div>
-            )}
+            <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_ease-in-out_infinite] rounded-full"></div>
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-full"></div>
           </div>
         </div>
 
-        <div className="flex gap-3 w-full">
-          <div className="bg-black/10 backdrop-blur-md rounded-3xl p-4 flex-1 border border-white/20 flex flex-col justify-center items-center shadow-inner">
-            <span className="text-white/70 text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
-              <Droplet size={10} /> Terakhir Siram
+        {/* Kotak Info */}
+        <div className="flex gap-4 w-full">
+          <div className="bg-black/20 backdrop-blur-md rounded-[1.5rem] p-4 flex-1 border border-white/10 flex flex-col justify-center items-center shadow-inner hover:bg-black/30 transition-colors">
+            <span className="text-white/60 text-[9px] uppercase font-bold tracking-widest mb-1.5 flex items-center gap-1">
+              <Droplet size={10} className="text-blue-300" /> HISTORY
             </span>
-            <span className="text-white font-black text-xl">
-              {formatTimeStr(lastWaterTime)}
+            <span className="text-white font-black text-lg tracking-tight">
+              {formatTimeStr(device.lastWaterTime)}
             </span>
           </div>
 
           <div
-            className="bg-black/10 backdrop-blur-md rounded-3xl p-4 flex-1 border border-white/20 flex flex-col items-center justify-between shadow-inner cursor-pointer"
-            onClick={toggleAutoMode}
+            className={`backdrop-blur-md rounded-[1.5rem] p-4 flex-1 border flex flex-col items-center justify-between shadow-inner cursor-pointer transition-colors
+              ${device.autoMode ? 'bg-green-500/20 border-green-400/50' : 'bg-black/20 border-white/10 hover:bg-black/30'}`}
+            onClick={onToggleAuto}
           >
-            <span className="text-white/70 text-[10px] uppercase font-bold tracking-wider mb-2 flex items-center gap-1">
-              <Bot size={10} /> Auto Pilot
+            <span className={`text-[9px] uppercase font-bold tracking-widest mb-2 flex items-center gap-1 ${device.autoMode ? 'text-green-300' : 'text-white/60'}`}>
+              <Bot size={10} /> AUTO MODE
             </span>
-            <div
-              className={`w-14 h-7 rounded-full p-1 transition-all duration-300 shadow-inner ${autoMode ? "bg-green-400" : "bg-black/30"}`}
-            >
-              <div
-                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${autoMode ? "translate-x-7" : "translate-x-0"}`}
-              >
-                {autoMode && <Bot size={12} className="text-green-500" />}
+            <div className={`w-14 h-7 rounded-full p-1 transition-all duration-300 shadow-inner flex items-center ${device.autoMode ? "bg-green-400" : "bg-black/40"}`}>
+              <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${device.autoMode ? "translate-x-7" : "translate-x-0"}`}>
+                {device.autoMode && <Bot size={11} className="text-green-500" />}
               </div>
             </div>
           </div>
         </div>
 
+        {/* Tombol Siram Utama */}
         <button
-          onClick={handleWater}
-          disabled={isWatering || autoMode}
-          className={`w-full font-black text-lg py-4 rounded-full shadow-[0_8px_0_rgba(0,0,0,0.1)] transition-all active:translate-y-2 active:shadow-none flex justify-center items-center gap-2
-            ${isWatering || autoMode ? "bg-white/40 text-white/60 cursor-not-allowed" : "bg-white text-[#81B95B] hover:bg-green-50"}`}
+          onClick={triggerWatering}
+          disabled={isWatering || device.autoMode}
+          className={`w-full font-black text-lg py-4 rounded-2xl transition-all duration-300 flex justify-center items-center gap-2 group relative overflow-hidden
+            ${isWatering || device.autoMode 
+              ? "bg-white/20 text-white/50 cursor-not-allowed shadow-none" 
+              : "bg-white text-emerald-600 hover:text-emerald-500 shadow-[0_10px_20px_rgba(255,255,255,0.3)] hover:shadow-[0_5px_10px_rgba(255,255,255,0.2)] hover:-translate-y-1 active:translate-y-1 active:shadow-none"}`}
         >
-          {isWatering ? (
-            <>
-              <Droplet
-                size={20}
-                className="animate-bounce"
-                fill="currentColor"
-              />{" "}
-              Menyiram...
-            </>
-          ) : autoMode ? (
-            <>
-              <Bot size={20} /> Auto Pilot Aktif
-            </>
-          ) : (
-            <>
-              <Droplet size={20} /> Siram Sekarang
-            </>
+          {!(isWatering || device.autoMode) && (
+            <div className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 z-0"></div>
           )}
+          
+          <span className="relative z-10 flex items-center gap-2">
+            {isWatering ? (
+              <><Droplet size={22} className="animate-bounce text-blue-400" fill="currentColor" /> MENYIRAM...</>
+            ) : device.autoMode ? (
+              <><Bot size={22} /> AUTO PILOT AKTIF</>
+            ) : (
+              <><Droplet size={22} className="group-hover:scale-110 transition-transform" /> SIRAM SEKARANG</>
+            )}
+          </span>
         </button>
+
       </div>
     </div>
   );
