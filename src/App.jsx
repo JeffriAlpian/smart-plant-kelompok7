@@ -4,7 +4,7 @@ import {
   doc,
   setDoc,
   onSnapshot,
-  getDoc,
+  getDoc
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { useAuth } from "./contexts/AuthContext";
@@ -13,7 +13,6 @@ import Signup from "./components/Signup";
 import VaseCard from "./VaseCard";
 import QRScanner from "./components/QRScanner";
 import HistoryTab from "./components/HistoryTab";
-// IMPORT LUCIDE ICONS
 import {
   Home,
   History,
@@ -47,7 +46,6 @@ function App() {
   useEffect(() => {
     if (!currentUser) return;
 
-    // 1. Ambil DAFTAR ID POT yang hanya dimiliki oleh user yang sedang login
     const userPreferencesRef = collection(
       db,
       "users",
@@ -57,12 +55,11 @@ function App() {
     const unsubUserDevices = onSnapshot(userPreferencesRef, (snapshot) => {
       const myDeviceIds = [];
       snapshot.forEach((doc) => {
-        myDeviceIds.push(doc.id); // doc.id adalah ID Pot (misal: POT-01)
+        myDeviceIds.push(doc.id);
       });
-      setDevices(myDeviceIds); // Simpan hanya pot milik user ini
+      setDevices(myDeviceIds);
     });
 
-    // 2. Tetap ambil data kelembaban dari koleksi global devices
     const globalDevicesRef = collection(db, "devices");
     const unsubGlobalDevices = onSnapshot(globalDevicesRef, (snapshot) => {
       const dataMap = {};
@@ -72,7 +69,6 @@ function App() {
       setDeviceData(dataMap);
     });
 
-    // Bersihkan listener saat user logout atau komponen ditutup
     return () => {
       unsubUserDevices();
       unsubGlobalDevices();
@@ -227,6 +223,10 @@ function App() {
                     deviceId={deviceId}
                     moisture={deviceData[deviceId]}
                     userId={currentUser.uid}
+                    // PERBAIKAN: Beritahu App.js untuk langsung menghapus div pembungkus dari layar!
+                    onDeleteSuccess={(deletedId) => {
+                      setDevices(prev => prev.filter(id => id !== deletedId));
+                    }}
                   />
                 </div>
               ))
@@ -239,7 +239,6 @@ function App() {
   return (
     <div className="h-screen font-sans flex justify-center text-white sm:py-6 selection:bg-green-300">
       <div className="w-full bg-linear-to-b from-[#6EB5FF] via-[#85C4FF] to-[#A3D180] relative overflow-hidden sm:rounded-[3rem] sm:border-8 sm:border-black/10 sm:shadow-2xl flex flex-col h-dvh sm:h-212.5 shadow-none">
-        {/* Dekorasi Awan Belakang dengan Lucide */}
         <Cloud
           size={100}
           className="absolute top-16 left-2 text-white/20 pointer-events-none"
@@ -272,8 +271,7 @@ function App() {
 
         {renderTabContent()}
 
-        {/* BOTTOM NAVIGATION BAR */}
-        <div className="absolute bottom-6 left-6 right-6 bg-white/30 backdrop-blur-xl px-4 py-4 rounded-[2rem] flex justify-between items-center border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50">
+        <div className="absolute bottom-6 left-6 right-6 bg-white/30 backdrop-blur-xl px-4 py-4 rounded-4xl flex justify-between items-center border border-white/40 shadow-[0_10px_40px_rgba(0,0,0,0.2)] z-50">
           <NavIcon
             Icon={Home}
             label="Home"
@@ -308,7 +306,6 @@ function App() {
           />
         </div>
 
-        {/* MODAL TAMBAH POT */}
         {showAddForm && (
           <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-6 animate-fadeIn">
             <div className="bg-white rounded-[2.5rem] p-8 w-full text-gray-800 shadow-2xl relative">
@@ -320,7 +317,6 @@ function App() {
               </p>
 
               <form onSubmit={handleAddDevice}>
-                {/* WRAPPER INPUT & TOMBOL SCAN */}
                 <div className="relative mb-6">
                   <input
                     type="text"
@@ -359,14 +355,11 @@ function App() {
           </div>
         )}
 
-        {/* OVERLAY QR SCANNER */}
         {showScanner && (
           <QRScanner
             onClose={() => setShowScanner(false)}
             onScanSuccess={(scannedText) => {
-              // Otomatis mengisi input form dengan hasil scan
               setNewDeviceId(scannedText);
-              // Tutup kamera setelah berhasil
               setShowScanner(false);
             }}
           />
@@ -376,7 +369,6 @@ function App() {
   );
 }
 
-// NavIcon diperbarui untuk menerima prop "Icon" berupa komponen Lucide
 const NavIcon = ({ Icon, label, active, onClick }) => (
   <div
     onClick={onClick}

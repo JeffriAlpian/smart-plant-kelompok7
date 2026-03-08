@@ -74,7 +74,7 @@ const HistoryTab = ({ devices }) => {
   };
 
   return (
-    <div className="flex-1 min-h-0 w-full px-6 pt-4 pb-24 overflow-y-auto animate-fadeIn no-scrollbar relative z-10">
+    <div className="flex-1 min-h-0 w-full px-6 pt-4 pb-40 overflow-y-auto animate-fadeIn no-scrollbar relative z-10">
       
       {/* Header Tab */}
       <div className="flex justify-between items-center mb-6 drop-shadow-md">

@@ -10,13 +10,13 @@ import {
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCLKe6G0C1SGsePkwOTC7R1ViOhkunY_q4",
-  authDomain: "smart-vase-de532.firebaseapp.com",
-  projectId: "smart-vase-de532",
-  storageBucket: "smart-vase-de532.firebasestorage.app",
-  messagingSenderId: "155941724985",
-  appId: "1:155941724985:web:088314401da931a8d47ee8",
-  measurementId: "G-H1ZN7ZFEGK"
+  apiKey: "AIzaSyAG6AttOievBlA5m7Fxj4vQ-_VdUf6vgZ0",
+  authDomain: "smart-vase-kelompok7.firebaseapp.com",
+  projectId: "smart-vase-kelompok7",
+  storageBucket: "smart-vase-kelompok7.firebasestorage.app",
+  messagingSenderId: "534571289251",
+  appId: "1:534571289251:web:418a22cb6ec6596f504d16",
+  measurementId: "G-YTTW7F94E5"
 };
 
 const app = initializeApp(firebaseConfig);
