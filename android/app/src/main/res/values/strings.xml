@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">smart-vase</string>
+    <string name="title_activity_main">smart-vase</string>
+    <string name="package_name">com.smartvase.app</string>
+    <string name="custom_url_scheme">com.smartvase.app</string>
+</resources>
