@@ -55,7 +55,7 @@ export default function Signup({ onToggleForm }) {
     // Layout utama yang sama persis dengan Login dan App
     <div className="min-h-screen font-sans flex justify-center text-white sm:py-6 selection:bg-green-300">
       <div
-        className={`w-full bg-linear-to-b ${bgGradient} relative overflow-hidden sm:rounded-[3rem] sm:border-[8px] sm:border-black/10 sm:shadow-2xl flex flex-col justify-center h-dvh sm:h-212.5 p-8 animate-fadeIn`}
+        className={`w-full bg-linear-to-b ${bgGradient} relative overflow-hidden sm:rounded-[3rem] sm:border-8 sm:border-black/10 sm:shadow-2xl flex flex-col justify-center h-dvh sm:h-212.5 p-8 animate-fadeIn`}
       >
         {/* === DEKORASI LANGIT ANIMASI === */}
         {isNight ? (
