@@ -13,6 +13,7 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/barcode-scanner": "^3.0.2",
     "@capacitor/core": "^8.2.0",
+    "@capacitor/push-notifications": "^8.0.2",
     "@tailwindcss/vite": "^4.2.1",
     "@yudiel/react-qr-scanner": "^2.5.1",
     "chart.js": "^4.5.1",

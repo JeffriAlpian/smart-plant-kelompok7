@@ -40,21 +40,22 @@ const RainAnimation = () => (
   </div>
 );
 
-// --- KARAKTER PET TERAKOTA BARU ---
-// --- KARAKTER PET MENGGUNAKAN GAMBAR/GIF ---
-const KawaiiPlant = ({ moisture, isWatering }) => {
+// --- KARAKTER PET TERAKOTA BARU MENGGUNAKAN GAMBAR/GIF---
+const KawaiiPlant = ({ moisture, isWatering, currentTime}) => {
   const isThirsty = moisture < 30;
+
+  const currentHour = currentTime.getHours();
+  const isNight = currentHour >= 18 || currentHour < 6;
 
   // Tentukan path gambar (pastikan file ada di folder public/)
   // Jika kamu punya 3 GIF berbeda, kamu bisa ubah logikanya di sini!
   let petImage = "/plant/3.gif";
   if (isWatering) petImage = "/plant/2.gif";
   else if (isThirsty) petImage = "/plant/1.gif";
+  else if (isNight) petImage = "/plant/4.gif";
 
   return (
     <div className="flex flex-col items-center justify-center p-4 relative">
-      
-
       {/* Halo Cahaya Latar Belakang */}
       <div
         className={`absolute inset-0 blur-3xl rounded-full opacity-40 transition-colors duration-1000 z-0 ${
@@ -91,6 +92,7 @@ const KawaiiPlant = ({ moisture, isWatering }) => {
 const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
   const [isWatering, setIsWatering] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const threshold = 30;
   const cooldown = 30000;
@@ -98,25 +100,25 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
   const safeMoisture = Math.min(100, Math.max(0, device.moisture || 0));
   const isThirsty = safeMoisture < threshold;
 
-  // Logika Auto Menyiram
+  // --- WAKTU & TEMA ---
   useEffect(() => {
-    if (device.autoMode && safeMoisture < threshold && !isWatering) {
-      if (Date.now() - (device.lastWaterTime || 0) > cooldown) {
-        triggerWatering();
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [device.autoMode, safeMoisture, isWatering, device.lastWaterTime]);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const triggerWatering = async () => {
-    if (isWatering) return;
+  // ✅ GUNAKAN INI UNTUK TOMBOL "SIRAM MANUAL" DI LAYAR
+  const handleManualClick = async () => {
+    if (isWatering) return; // Mencegah spam klik bertubi-tubi
 
-    setIsWatering(true);
+    setIsWatering(true); // Ubah status tombol jadi "Sedang Menyiram..." (disable)
+
+    // onWater() di sini memanggil fungsi handleWaterDevice yang kita buat sebelumnya
+    // (yang isinya: updateDoc waterCommand: true)
     await onWater();
 
     setTimeout(() => {
       setIsWatering(false);
-    }, 3000);
+    }, 5000);
   };
 
   const triggerDelete = async () => {
@@ -187,7 +189,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
         </div>
 
         {isWatering && <RainAnimation />}
-        <KawaiiPlant moisture={safeMoisture} isWatering={isWatering} />
+        <KawaiiPlant moisture={safeMoisture} isWatering={isWatering} currentTime={currentTime} />
       </div>
 
       {/* SECTION KARTU KONTROL */}
@@ -235,21 +237,21 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
             className={`h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm 
               ${
                 isWatering
-                  ? "bg-gradient-to-r from-blue-400 to-cyan-300"
+                  ? "bg-linear-to-r from-blue-400 to-cyan-300"
                   : isThirsty
-                  ? "bg-gradient-to-r from-red-500 to-orange-400"
-                  : "bg-gradient-to-r from-green-300 to-emerald-400"
+                  ? "bg-linear-to-r from-red-500 to-orange-400"
+                  : "bg-linear-to-r from-green-300 to-emerald-400"
               }`}
             style={{ width: `${safeMoisture}%` }}
           >
             <div className="absolute inset-0 bg-white/20 animate-[pulse_2s_ease-in-out_infinite] rounded-full"></div>
-            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-full"></div>
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-linear-to-b from-white/40 to-transparent rounded-t-full"></div>
           </div>
         </div>
 
         {/* Kotak Info */}
         <div className="flex gap-4 w-full">
-          <div className="bg-black/20 backdrop-blur-md rounded-[1.5rem] p-4 flex-1 border border-white/10 flex flex-col justify-center items-center shadow-inner hover:bg-black/30 transition-colors">
+          <div className="bg-black/20 backdrop-blur-md rounded-3xl p-4 flex-1 border border-white/10 flex flex-col justify-center items-center shadow-inner hover:bg-black/30 transition-colors">
             <span className="text-white/60 text-[9px] uppercase font-bold tracking-widest mb-1.5 flex items-center gap-1">
               <Droplet size={10} className="text-blue-300" /> HISTORY
             </span>
@@ -259,7 +261,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
           </div>
 
           <div
-            className={`backdrop-blur-md rounded-[1.5rem] p-4 flex-1 border flex flex-col items-center justify-between shadow-inner cursor-pointer transition-colors
+            className={`backdrop-blur-md rounded-3xl p-4 flex-1 border flex flex-col items-center justify-between shadow-inner cursor-pointer transition-colors
               ${
                 device.autoMode
                   ? "bg-green-500/20 border-green-400/50"
@@ -294,7 +296,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
 
         {/* Tombol Siram Utama */}
         <button
-          onClick={triggerWatering}
+          onClick={handleManualClick}
           disabled={isWatering || device.autoMode}
           className={`w-full font-black text-lg py-4 rounded-2xl transition-all duration-300 flex justify-center items-center gap-2 group relative overflow-hidden
             ${
@@ -304,7 +306,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
             }`}
         >
           {!(isWatering || device.autoMode) && (
-            <div className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 z-0"></div>
+            <div className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 group-hover:animate-[shimmer_1.5s_infinite] bg-linear-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 z-0"></div>
           )}
 
           <span className="relative z-10 flex items-center gap-2">

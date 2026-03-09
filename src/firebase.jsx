@@ -8,6 +8,7 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getMessaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAG6AttOievBlA5m7Fxj4vQ-_VdUf6vgZ0",
@@ -22,12 +23,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const messaging = getMessaging(app);
 
 export { 
   auth, 
   db,
+  messaging,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
 };

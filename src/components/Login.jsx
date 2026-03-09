@@ -11,11 +11,14 @@ import {
   Moon,
   Sun,
   Star,
+  Check // 👈 Tambahan icon untuk centang
 } from "lucide-react";
 
 export default function Login({ onToggleForm }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // 👇 State baru untuk Remember Me (bawaannya true/dicentang)
+  const [rememberMe, setRememberMe] = useState(true); 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -39,7 +42,8 @@ export default function Login({ onToggleForm }) {
     try {
       setError("");
       setLoading(true);
-      await login(email, password);
+      // 👇 Sekarang kita mengirimkan status rememberMe ke AuthContext
+      await login(email, password, rememberMe); 
     } catch (err) {
       setError("Gagal login: Periksa kembali email dan password Anda.");
     }
@@ -57,59 +61,18 @@ export default function Login({ onToggleForm }) {
         {/* === DEKORASI LANGIT ANIMASI === */}
         {isNight ? (
           <>
-            <Moon
-              size={120}
-              className="absolute -top-4 -right-4 text-yellow-100/30 drop-shadow-[0_0_40px_rgba(255,255,255,0.6)] animate-pulse"
-              fill="currentColor"
-              strokeWidth={0}
-            />
-            <Star
-              size={20}
-              className="absolute top-12 left-10 text-yellow-200/80 animate-ping"
-              fill="currentColor"
-            />
-            <Star
-              size={14}
-              className="absolute top-32 left-32 text-white/50 animate-pulse"
-              fill="currentColor"
-            />
-            <Star
-              size={24}
-              className="absolute top-20 right-28 text-yellow-100/60 animate-pulse"
-              fill="currentColor"
-            />
-            <Star
-              size={10}
-              className="absolute top-48 left-16 text-white/40 animate-ping"
-              fill="currentColor"
-            />
-            <Cloud
-              size={140}
-              className="absolute top-40 -left-10 text-indigo-300/10 pointer-events-none"
-              fill="currentColor"
-              strokeWidth={0}
-            />
+            <Moon size={120} className="absolute -top-4 -right-4 text-yellow-100/30 drop-shadow-[0_0_40px_rgba(255,255,255,0.6)] animate-pulse" fill="currentColor" strokeWidth={0} />
+            <Star size={20} className="absolute top-12 left-10 text-yellow-200/80 animate-ping" fill="currentColor" />
+            <Star size={14} className="absolute top-32 left-32 text-white/50 animate-pulse" fill="currentColor" />
+            <Star size={24} className="absolute top-20 right-28 text-yellow-100/60 animate-pulse" fill="currentColor" />
+            <Star size={10} className="absolute top-48 left-16 text-white/40 animate-ping" fill="currentColor" />
+            <Cloud size={140} className="absolute top-40 -left-10 text-indigo-300/10 pointer-events-none" fill="currentColor" strokeWidth={0} />
           </>
         ) : (
           <>
-            <Sun
-              size={150}
-              className="absolute -top-10 -right-10 text-yellow-300/40 drop-shadow-[0_0_50px_rgba(255,235,59,0.8)] animate-spin-slow"
-              fill="currentColor"
-              strokeWidth={0}
-            />
-            <Cloud
-              size={100}
-              className="absolute top-16 left-2 text-white/30 pointer-events-none animate-bounce"
-              fill="currentColor"
-              strokeWidth={0}
-            />
-            <Cloud
-              size={140}
-              className="absolute top-40 -right-10 text-white/20 pointer-events-none"
-              fill="currentColor"
-              strokeWidth={0}
-            />
+            <Sun size={150} className="absolute -top-10 -right-10 text-yellow-300/40 drop-shadow-[0_0_50px_rgba(255,235,59,0.8)] animate-spin-slow" fill="currentColor" strokeWidth={0} />
+            <Cloud size={100} className="absolute top-16 left-2 text-white/30 pointer-events-none animate-bounce" fill="currentColor" strokeWidth={0} />
+            <Cloud size={140} className="absolute top-40 -right-10 text-white/20 pointer-events-none" fill="currentColor" strokeWidth={0} />
           </>
         )}
 
@@ -170,6 +133,31 @@ export default function Login({ onToggleForm }) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+
+            {/* 👇 Checkbox "Ingat Saya" */}
+            <div className="flex items-center ml-1 mt-1 mb-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  {/* Kotak Custom */}
+                  <div className="w-5 h-5 border-2 border-white/50 rounded-md bg-black/10 peer-checked:bg-[#81B95B] peer-checked:border-[#81B95B] transition-all shadow-inner flex items-center justify-center">
+                    <Check 
+                      size={14} 
+                      strokeWidth={4} 
+                      className={`text-white transition-transform duration-200 ${rememberMe ? 'scale-100' : 'scale-0'}`} 
+                    />
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-white/80 group-hover:text-white transition-colors">
+                  Ingat Saya
+                </span>
+              </label>
             </div>
 
             {/* Tombol Login */}

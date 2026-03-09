@@ -1,12 +1,15 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
+import React, { createContext, useContext, useState, useEffect } from "react";
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { auth } from '../firebase';
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+} from "firebase/auth";
+import { auth } from "../firebase";
 
 const AuthContext = createContext();
 
@@ -22,7 +25,14 @@ export function AuthProvider({ children }) {
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
-  function login(email, password) {
+  async function login(email, password, rememberMe) {
+    // Tentukan tipe penyimpanan sesi
+    const persistenceType = rememberMe
+      ? browserLocalPersistence
+      : browserSessionPersistence;
+
+    // Set persistence dulu, baru lakukan login
+    await setPersistence(auth, persistenceType);
     return signInWithEmailAndPassword(auth, email, password);
   }
 
@@ -42,7 +52,7 @@ export function AuthProvider({ children }) {
     currentUser,
     signup,
     login,
-    logout
+    logout,
   };
 
   return (
