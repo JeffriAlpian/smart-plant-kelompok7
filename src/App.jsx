@@ -13,6 +13,8 @@ import {
 } from "firebase/firestore";
 import { getMessaging, getToken } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Dialog } from '@capacitor/dialog';
 import { PushNotifications } from "@capacitor/push-notifications";
 import { db } from "./firebase";
 import { useAuth } from "./contexts/AuthContext";
@@ -21,7 +23,7 @@ import useIdleTimeout from "./hooks/useIdleTimeout";
 // --- Komponen Anak ---
 import Login from "./components/Login";
 import Signup from "./components/Signup";
-import VaseCard from "./VaseCard";
+import VaseCard from "./components/VaseCard";
 import QRScanner from "./components/QRScanner";
 import HistoryTab from "./components/HistoryTab";
 import RootGame from "./components/RootGame";
@@ -250,6 +252,34 @@ export default function App() {
     );
   }
 
+  // =====================================================
+  // === LISTENER BACK BUTTON UNTUK MENU UTAMA ===========
+  // =====================================================
+  useEffect(() => {
+    // Jika sedang di dalam game, biarkan RootGame yang mengurusnya
+    if (showGame) return;
+
+    const backListener = CapacitorApp.addListener("backButton", async () => {
+      // Tampilkan Prompt Konfirmasi Native Android
+      const { value } = await Dialog.confirm({
+        title: "Keluar Game",
+        message: "Apakah kamu yakin ingin keluar dari game?",
+        okButtonTitle: "Ya, Keluar",
+        cancelButtonTitle: "Batal",
+      });
+
+      // Jika user menekan tombol "Ya, Keluar" (value = true)
+      if (value) {
+        CapacitorApp.exitApp();
+      }
+    });
+
+    return () => {
+      backListener.then((listener) => listener.remove());
+    };
+  }, [showGame]);
+  // =====================================================
+
   // --- HALAMAN GAME ---
   if (showGame) {
     const username = currentUser?.email
@@ -273,7 +303,6 @@ export default function App() {
   return (
     // Wrapper utama: flex-col untuk mobile, flex-row untuk desktop
     <div className="h-screen w-screen overflow-hidden font-sans flex flex-col md:flex-row text-white bg-gray-900 selection:bg-green-300 transition-colors duration-1000 relative">
-      
       {/* 🧭 Navigasi - Berubah jadi sidebar di desktop */}
       <nav className="fixed md:static bottom-4 left-6 right-6 md:w-28 md:h-full bg-white/10 md:bg-black/40 backdrop-blur-xl px-4 py-3 md:py-8 md:px-0 rounded-4xl md:rounded-none flex flex-row md:flex-col justify-between md:justify-center items-center border border-white/20 md:border-t-0 md:border-l-0 md:border-b-0 md:border-r md:border-white/10 shadow-[0_15px_30px_rgba(0,0,0,0.3)] md:shadow-none z-50 transition-all duration-500">
         <NavIcon
@@ -319,7 +348,9 @@ export default function App() {
       </nav>
 
       {/* 🌟 Area Konten Utama */}
-      <div className={`flex-1 bg-linear-to-b ${bgGradient} relative overflow-y-auto overflow-x-hidden flex flex-col h-full transition-all duration-1000 ease-in-out`}>
+      <div
+        className={`flex-1 bg-linear-to-b ${bgGradient} relative overflow-y-auto overflow-x-hidden flex flex-col h-full transition-all duration-1000 ease-in-out`}
+      >
         <BackgroundDecorations isNight={isNight} />
 
         {/* Header App */}
@@ -333,7 +364,7 @@ export default function App() {
               Virtual Pet
             </span>
           </div>
-          
+
           <div className="flex items-end justify-center drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
             <h1 className="text-7xl md:text-8xl font-black tracking-tighter text-white">
               {time.hours}:{time.minutes}
@@ -345,9 +376,9 @@ export default function App() {
 
           <button
             onClick={() => setShowAddForm(true)}
-            className="absolute top-6 right-6 md:top-10 md:right-10 bg-linear-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-black p-3 rounded-2xl shadow-[0_6px_0_rgba(180,83,9,1)] active:translate-y-1 active:shadow-none transition-all flex justify-center items-center gap-3 z-20"
+            className="absolute top-6 right-6 md:top-10 md:right-10 bg-linear-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-black p-2 rounded-2xl shadow-[0_6px_0_rgba(180,83,9,1)] active:translate-y-1 active:shadow-none transition-all flex justify-center items-center gap-3 z-20"
           >
-            <Plus size={30} />
+            <Plus size={25} />
           </button>
         </div>
 
@@ -611,18 +642,59 @@ const BackgroundDecorations = ({ isNight }) => (
   <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
     {isNight ? (
       <>
-        <Moon size={150} className="absolute -top-10 -right-10 md:top-10 md:right-20 text-yellow-100/30 drop-shadow-[0_0_40px_rgba(255,255,255,0.6)] animate-pulse" fill="currentColor" strokeWidth={0} />
-        <Star size={20} className="absolute top-12 left-10 md:left-32 text-yellow-200/80 animate-ping" fill="currentColor" />
-        <Star size={14} className="absolute top-32 left-32 md:left-1/4 text-white/50 animate-pulse" fill="currentColor" />
-        <Star size={24} className="absolute top-20 right-28 md:right-1/3 text-yellow-100/60 animate-pulse" fill="currentColor" />
-        <Star size={10} className="absolute top-48 left-16 md:bottom-1/4 md:left-20 text-white/40 animate-ping" fill="currentColor" />
-        <Cloud size={180} className="absolute top-40 -left-10 md:top-20 md:left-1/4 text-indigo-300/10 pointer-events-none" fill="currentColor" strokeWidth={0} />
+        <Moon
+          size={150}
+          className="absolute -top-10 -right-10 md:top-10 md:right-20 text-yellow-100/30 drop-shadow-[0_0_40px_rgba(255,255,255,0.6)] animate-pulse"
+          fill="currentColor"
+          strokeWidth={0}
+        />
+        <Star
+          size={20}
+          className="absolute top-12 left-10 md:left-32 text-yellow-200/80 animate-ping"
+          fill="currentColor"
+        />
+        <Star
+          size={14}
+          className="absolute top-32 left-32 md:left-1/4 text-white/50 animate-pulse"
+          fill="currentColor"
+        />
+        <Star
+          size={24}
+          className="absolute top-20 right-28 md:right-1/3 text-yellow-100/60 animate-pulse"
+          fill="currentColor"
+        />
+        <Star
+          size={10}
+          className="absolute top-48 left-16 md:bottom-1/4 md:left-20 text-white/40 animate-ping"
+          fill="currentColor"
+        />
+        <Cloud
+          size={180}
+          className="absolute top-40 -left-10 md:top-20 md:left-1/4 text-indigo-300/10 pointer-events-none"
+          fill="currentColor"
+          strokeWidth={0}
+        />
       </>
     ) : (
       <>
-        <Sun size={200} className="absolute -top-10 -right-10 md:top-10 md:right-20 text-yellow-300/40 drop-shadow-[0_0_50px_rgba(255,235,59,0.8)] animate-spin-slow" fill="currentColor" strokeWidth={0} />
-        <Cloud size={140} className="absolute top-16 left-2 md:left-20 text-white/30 pointer-events-none animate-bounce" fill="currentColor" strokeWidth={0} />
-        <Cloud size={200} className="absolute top-40 -right-10 md:top-20 md:right-1/3 text-white/20 pointer-events-none" fill="currentColor" strokeWidth={0} />
+        <Sun
+          size={200}
+          className="absolute -top-10 -right-10 md:top-10 md:right-20 text-yellow-300/40 drop-shadow-[0_0_50px_rgba(255,235,59,0.8)] animate-spin-slow"
+          fill="currentColor"
+          strokeWidth={0}
+        />
+        <Cloud
+          size={140}
+          className="absolute top-16 left-2 md:left-20 text-white/30 pointer-events-none animate-bounce"
+          fill="currentColor"
+          strokeWidth={0}
+        />
+        <Cloud
+          size={200}
+          className="absolute top-40 -right-10 md:top-20 md:right-1/3 text-white/20 pointer-events-none"
+          fill="currentColor"
+          strokeWidth={0}
+        />
       </>
     )}
   </div>

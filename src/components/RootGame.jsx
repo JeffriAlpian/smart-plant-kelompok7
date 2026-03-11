@@ -1,6 +1,12 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Sky } from "@react-three/drei";
+import { Sky, Stars } from "@react-three/drei";
 import {
   Play,
   RotateCcw,
@@ -28,17 +34,19 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import * as THREE from "three";
+import { App } from "@capacitor/app";
 
 const MAX_POOL = 30;
 
 // =======================================================
-// 1. AUDIO ENGINE
+// 1. AUDIO ENGINE (DIPERBARUI LEBIH HALUS & HARMONIS)
 // =======================================================
 const AudioEngine = {
   ctx: null,
   bgmInterval: null,
   bgmNoteIndex: 0,
-  bgmNotes: [261.63, 329.63, 392.0, 523.25],
+  // Menggunakan tangga nada pentatonik yang lebih rileks (Kalimba style)
+  bgmNotes: [261.63, 293.66, 329.63, 392.0, 440.0, 392.0, 329.63, 293.66],
 
   init() {
     if (!this.ctx) {
@@ -52,36 +60,37 @@ const AudioEngine = {
     const ctx = this.init();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = "sine";
+    osc.type = "sine"; // Suara lebih bulat/halus
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     const now = ctx.currentTime;
     osc.frequency.setValueAtTime(800, now);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1); // Pitch naik (seperti tetesan)
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
 
     osc.start(now);
-    osc.stop(now + 0.1);
+    osc.stop(now + 0.15);
   },
 
   playCrashSound() {
     const ctx = this.init();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = "sawtooth";
+    osc.type = "square"; // Sedikit distorsi tapi di-fade cepat
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     const now = ctx.currentTime;
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
     osc.start(now);
-    osc.stop(now + 0.2);
+    osc.stop(now + 0.3);
   },
 
   playBGM() {
@@ -91,20 +100,23 @@ const AudioEngine = {
     this.bgmInterval = setInterval(() => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "triangle";
+      osc.type = "sine"; // Diganti dari triangle agar tidak menusuk telinga
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       const now = ctx.currentTime;
       osc.frequency.setValueAtTime(this.bgmNotes[this.bgmNoteIndex], now);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+      // Envelope yang lebih musical (Attack cepat, Decay lambat)
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
       osc.start(now);
-      osc.stop(now + 0.2);
+      osc.stop(now + 0.4);
 
       this.bgmNoteIndex = (this.bgmNoteIndex + 1) % this.bgmNotes.length;
-    }, 250);
+    }, 300); // Tempo sedikit diperlambat agar chill
   },
 
   stopBGM() {
@@ -124,7 +136,7 @@ function Player({ lane }) {
   const scaleRef = useRef(1);
 
   useEffect(() => {
-    const handleGulp = () => (scaleRef.current = 1.4);
+    const handleGulp = () => (scaleRef.current = 1.3); // Sedikit dikurangi agar tidak glitch
     window.addEventListener("waterCollected", handleGulp);
     return () => window.removeEventListener("waterCollected", handleGulp);
   }, []);
@@ -151,24 +163,24 @@ function Player({ lane }) {
   return (
     <group ref={groupRef} position={[0, 0.3, 0]}>
       <mesh castShadow position={[0, 0.3, 0]}>
-        <cylinderGeometry args={[0.5, 0.35, 0.6, 8]} />
-        <meshStandardMaterial color="#c2410c" roughness={0.8} flatShading />
+        <cylinderGeometry args={[0.5, 0.35, 0.6, 12]} />
+        <meshStandardMaterial color="#c2410c" roughness={0.8} />
       </mesh>
       <mesh position={[0, 0.61, 0]}>
-        <cylinderGeometry args={[0.45, 0.45, 0.05, 8]} />
+        <cylinderGeometry args={[0.45, 0.45, 0.05, 12]} />
         <meshStandardMaterial color="#451a03" roughness={1} />
       </mesh>
       <mesh castShadow position={[0, 0.8, 0]} rotation={[0.2, 0, 0]}>
-        <coneGeometry args={[0.2, 0.8, 4]} />
-        <meshStandardMaterial color="#22c55e" flatShading />
+        <coneGeometry args={[0.2, 0.8, 6]} />
+        <meshStandardMaterial color="#22c55e" />
       </mesh>
       <mesh castShadow position={[-0.2, 0.7, 0]} rotation={[-0.4, 0, 0.5]}>
-        <coneGeometry args={[0.15, 0.6, 4]} />
-        <meshStandardMaterial color="#16a34a" flatShading />
+        <coneGeometry args={[0.15, 0.6, 6]} />
+        <meshStandardMaterial color="#16a34a" />
       </mesh>
       <mesh castShadow position={[0.2, 0.7, 0]} rotation={[-0.4, 0, -0.5]}>
-        <coneGeometry args={[0.15, 0.6, 4]} />
-        <meshStandardMaterial color="#15803d" flatShading />
+        <coneGeometry args={[0.15, 0.6, 6]} />
+        <meshStandardMaterial color="#15803d" />
       </mesh>
     </group>
   );
@@ -178,11 +190,11 @@ function Tree({ position }) {
   return (
     <group position={position}>
       <mesh position={[0, 0.5, 0]} castShadow>
-        <cylinderGeometry args={[0.1, 0.2, 1, 5]} />
-        <meshStandardMaterial color="#78350f" flatShading />
+        <cylinderGeometry args={[0.1, 0.2, 1, 6]} />
+        <meshStandardMaterial color="#78350f" />
       </mesh>
       <mesh position={[0, 1.5, 0]} castShadow>
-        <icosahedronGeometry args={[0.8, 0]} />
+        <icosahedronGeometry args={[0.8, 1]} /> {/* Smooth tree */}
         <meshStandardMaterial color="#22c55e" flatShading />
       </mesh>
     </group>
@@ -190,7 +202,7 @@ function Tree({ position }) {
 }
 
 // =======================================================
-// 3. SCENE UTAMA
+// 3. SCENE UTAMA (DIPERBARUI PERFORMA & TEMA)
 // =======================================================
 function GameScene({
   isPlaying,
@@ -200,10 +212,36 @@ function GameScene({
   onDistanceUpdate,
   playerLane,
   isPaused,
+  isNight, // <--- Props baru untuk tema Realtime
 }) {
   const rocksRef = useRef([]);
   const watersRef = useRef([]);
   const linesGroupRef = useRef();
+
+  // === OPTIMASI RENDER (CACHING GEOMETRI & MATERIAL) ===
+  // Mencegah HP me-render ulang material setiap frame
+  const rockGeo = useMemo(() => new THREE.DodecahedronGeometry(0.8, 0), []);
+  const rockMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: isNight ? "#475569" : "#8b9bb4",
+        roughness: 0.9,
+        flatShading: true,
+      }),
+    [isNight],
+  );
+  const waterGeo = useMemo(() => new THREE.ConeGeometry(0.4, 0.8, 12), []); // Diperhalus menjadi 12 segmen
+  const waterMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#0ea5e9",
+        roughness: 0.1,
+        metalness: 0.3,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    [],
+  );
 
   const gameState = useRef({
     obstacles: [],
@@ -215,8 +253,6 @@ function GameScene({
     isAlive: false,
   });
 
-  // SOLUSI BUG: Menghapus dependensi onDistanceUpdate dan onScoreUpdate
-  // Agar tidak mereset scene saat pemain berpindah jalur
   useEffect(() => {
     if (isPlaying && !gameOver) {
       gameState.current = {
@@ -233,7 +269,6 @@ function GameScene({
       rocksRef.current.forEach((m) => m && (m.visible = false));
       watersRef.current.forEach((m) => m && (m.visible = false));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, gameOver]);
 
   useFrame(() => {
@@ -316,7 +351,6 @@ function GameScene({
       }
     }
 
-    // Update Batu
     for (let i = 0; i < MAX_POOL; i++) {
       const obs = state.obstacles[i];
       const mesh = rocksRef.current[i];
@@ -341,7 +375,6 @@ function GameScene({
     }
     state.obstacles = state.obstacles.filter((o) => o.active);
 
-    // Update Air
     for (let i = 0; i < MAX_POOL; i++) {
       const drop = state.waterDrops[i];
       const mesh = watersRef.current[i];
@@ -372,29 +405,69 @@ function GameScene({
     state.waterDrops = state.waterDrops.filter((w) => w.active);
   });
 
+  // Tema Warna berdasarkan Realtime Siang/Malam
+  const skyColor = isNight ? "#0f172a" : "#38bdf8";
+  // Kabut tetap biru terang agar ada efek gradasi di ujung jalan
+  const fogColor = isNight ? "#1e3a8a" : "#38bdf8";
+  const groundColor = isNight ? "#15803d" : "#84cc16";
+
   return (
     <>
-      <color attach="background" args={["#38bdf8"]} />
-      <fog attach="fog" args={["#38bdf8", 40, 60]} />
-      <Sky sunPosition={[10, 20, -50]} turbidity={0.1} rayleigh={0.5} />
-      <ambientLight intensity={0.7} />
+      <color attach="background" args={[skyColor]} />
+      <fog attach="fog" args={[fogColor, 30, 60]} />
+
+      {/* ================= PENGATURAN LANGIT ================= */}
+      {isNight ? (
+        <>
+          {/* EFEK MALAM: Bintang-bintang berkerlip (Sangat ringan untuk GPU Mobile) */}
+          <Stars
+            radius={100} // Jarak radius bintang dari tengah
+            depth={50} // Kedalaman area bintang
+            count={1500} // Jumlah bintang (1500 pas untuk performa mobile)
+            factor={20} // Ukuran bintang
+            saturation={0} // Warna bintang (0 = putih, tidak warna-warni)
+            fade={true} // Bintang memudar di kejauhan
+            speed={1.5} // Kecepatan kerlip bintang
+          />
+          <hemisphereLight
+            skyColor="#818cf8"
+            groundColor="#020617"
+            intensity={0.8}
+          />
+          <ambientLight intensity={0.7} color="#e0e7ff" />
+        </>
+      ) : (
+        <>
+          {/* EFEK SIANG: Langit cerah dengan hamburan cahaya matahari */}
+          <Sky
+            sunPosition={[10, 20, -50]}
+            turbidity={0.2} // Kejernihan langit
+            rayleigh={0.5} // Hamburan cahaya (biru langit)
+          />
+          <ambientLight intensity={0.7} />
+        </>
+      )}
+
+      {/* Cahaya Matahari / Bulan yang memantulkan bayangan */}
       <directionalLight
         castShadow
-        position={[10, 20, 10]}
+        position={isNight ? [-10, 20, -10] : [10, 20, 10]}
         intensity={1.5}
-        color="#ffffff"
-        shadow-mapSize={[1024, 1024]}
+        color={isNight ? "#c7d2fe" : "#ffffff"}
+        shadow-mapSize={[512, 512]}
       />
 
+      {/* Lantai / Rumput */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, 0, -20]}
         receiveShadow
       >
         <planeGeometry args={[100, 120]} />
-        <meshStandardMaterial color="#84cc16" roughness={1} />
+        <meshStandardMaterial color={groundColor} roughness={1} />
       </mesh>
 
+      {/* Garis Jalan */}
       <group ref={linesGroupRef} position={[0, 0.01, 0]}>
         {[-0.8, 0.8].map((x, i) => (
           <mesh
@@ -403,8 +476,12 @@ function GameScene({
             rotation={[-Math.PI / 2, 0, 0]}
             receiveShadow
           >
-            <planeGeometry args={[0.1, 100]} />
-            <meshBasicMaterial color="#ffffff" />
+            <planeGeometry args={[0.08, 100]} />
+            <meshBasicMaterial
+              color={isNight ? "#94a3b8" : "#ffffff"}
+              opacity={0.6}
+              transparent
+            />
           </mesh>
         ))}
       </group>
@@ -416,21 +493,15 @@ function GameScene({
 
       <Player lane={playerLane} />
 
-      {/* Rintangan dan Air diganti ke deklarasi Inline untuk keamanan Memori */}
       {[...Array(MAX_POOL)].map((_, i) => (
         <mesh
           key={`rock-${i}`}
           ref={(el) => (rocksRef.current[i] = el)}
           visible={false}
           castShadow
-        >
-          <dodecahedronGeometry args={[0.8, 0]} />
-          <meshStandardMaterial
-            color="#8b9bb4"
-            roughness={0.9}
-            flatShading={true}
-          />
-        </mesh>
+          geometry={rockGeo}
+          material={rockMat}
+        />
       ))}
 
       {[...Array(MAX_POOL)].map((_, i) => (
@@ -438,16 +509,10 @@ function GameScene({
           key={`water-${i}`}
           ref={(el) => (watersRef.current[i] = el)}
           visible={false}
-          castShadow
-        >
-          <coneGeometry args={[0.4, 0.8, 8]} />
-          <meshStandardMaterial
-            color="#0ea5e9"
-            roughness={0.1}
-            metalness={0.1}
-            flatShading={true}
-          />
-        </mesh>
+          geometry={waterGeo}
+          material={waterMat}
+          // castShadow dihilangkan khusus air untuk menghemat memori GPU mobile
+        />
       ))}
     </>
   );
@@ -467,11 +532,44 @@ export default function RootGame({ setShowGame, username, userId }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // === DETEKSI SIANG MALAM REALTIME ===
+  const [isNight, setIsNight] = useState(false);
+
+  useEffect(() => {
+    // Mengecek jam lokal HP pengguna
+    const currentHour = new Date().getHours();
+    // Jika lebih dari jam 18:00 sore atau kurang dari jam 06:00 pagi = Malam
+    setIsNight(currentHour >= 18 || currentHour < 6);
+  }, []);
+
   const distanceRef = useRef(null);
   const waterRef = useRef(null);
   const touchStartX = useRef(0);
 
-  // Fungsi untuk mengambil Leaderboard
+  // =====================================================
+  // === FITUR TOMBOL BACK (CAPACITOR NATIVE) ============
+  // =====================================================
+  useEffect(() => {
+    const backButtonListener = App.addListener(
+      "backButton",
+      ({ canGoBack }) => {
+        if (showSetting) {
+          setShowSetting(false);
+        } else if (showLeaderboard) {
+          setShowLeaderboard(false);
+        } else if (isPlaying && !gameOver) {
+          setShowSetting(true);
+        } else {
+          setShowGame(false);
+        }
+      },
+    );
+
+    return () => {
+      backButtonListener.then((listener) => listener.remove());
+    };
+  }, [isPlaying, gameOver, showSetting, showLeaderboard, setShowGame]);
+
   const fetchLeaderboard = async () => {
     try {
       const q = query(
@@ -527,28 +625,23 @@ export default function RootGame({ setShowGame, username, userId }) {
     setGameOver(true);
     setIsPlaying(false);
 
-    // Cek apakah skor lebih dari 0 dan userId tersedia
     if (distance > 0 && userId) {
       setIsSaving(true);
       try {
-        // Buat referensi dokumen spesifik untuk user ini
         const scoreRef = doc(db, "leaderboard", userId);
         const scoreSnap = await getDoc(scoreRef);
 
         let shouldUpdate = false;
 
         if (!scoreSnap.exists()) {
-          // Jika belum pernah main, langsung simpan
           shouldUpdate = true;
         } else {
-          // Jika sudah ada data, bandingkan skornya
           const currentData = scoreSnap.data();
           if (distance > currentData.distance) {
             shouldUpdate = true;
           }
         }
 
-        // Hanya update ke database JIKA mencetak rekor baru
         if (shouldUpdate) {
           await setDoc(
             scoreRef,
@@ -559,9 +652,9 @@ export default function RootGame({ setShowGame, username, userId }) {
               date: new Date().toISOString(),
             },
             { merge: true },
-          ); // merge: true agar data lain tidak terhapus
+          );
 
-          await fetchLeaderboard(); // Refresh tabel top 5
+          await fetchLeaderboard();
         }
       } catch (error) {
         console.error("Gagal menyimpan skor:", error);
@@ -614,8 +707,15 @@ export default function RootGame({ setShowGame, username, userId }) {
     return () => AudioEngine.stopBGM();
   }, []);
 
+  // UI HTML Background disesuaikan dengan Siang/Malam
+  const uiBgColor = isNight ? "bg-slate-900" : "bg-[#84cc16]";
+
   return (
-    <div className="relative w-full h-dvh max-w-md mx-auto select-none overflow-hidden touch-none bg-[#84cc16]">
+    <div
+      className={`relative w-full h-dvh max-w-md mx-auto select-none overflow-hidden touch-none transition-colors duration-1000 ${uiBgColor}`}
+    >
+      {/* ... (UI Modal Setting, Leaderboard, HUD, Overlay Menu dibiarkan SAMA PERSIS agar fitur tidak berubah) ... */}
+
       {/* ========================================= */}
       {/* ⚙️ MODAL PENGATURAN */}
       {/* ========================================= */}
@@ -680,9 +780,7 @@ export default function RootGame({ setShowGame, username, userId }) {
       {showLeaderboard && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-sky-900/60 backdrop-blur-md p-6 animate-in fade-in duration-200">
           <div className="bg-white/10 w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl border border-white/20 relative overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Efek Cahaya */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400/20 blur-3xl rounded-full pointer-events-none"></div>
-
             <div className="flex justify-between items-center mb-6 relative z-10">
               <h2 className="text-2xl font-black text-white flex items-center gap-2 drop-shadow-md">
                 <Trophy className="text-yellow-400" size={28} /> TOP 5
@@ -694,7 +792,6 @@ export default function RootGame({ setShowGame, username, userId }) {
                 <X size={20} />
               </button>
             </div>
-
             <div className="flex flex-col gap-3 relative z-10">
               {leaderboard.length === 0 ? (
                 <div className="text-center text-white/60 py-6 font-medium bg-black/20 rounded-2xl border border-white/5">
@@ -761,7 +858,7 @@ export default function RootGame({ setShowGame, username, userId }) {
         onTouchEnd={handleTouchEndWrapper}
         onClick={handleClickWrapper}
         className="absolute inset-0 w-full h-full outline-none"
-        dpr={[1, 1.5]}
+        dpr={[1, 1.5]} // Tetap stabil untuk mobile
       >
         <GameScene
           isPlaying={isPlaying}
@@ -771,6 +868,7 @@ export default function RootGame({ setShowGame, username, userId }) {
           onDistanceUpdate={handleDistanceUpdate}
           playerLane={playerLane}
           isPaused={showSetting}
+          isNight={isNight} // Passing status malam hari ke Scene
         />
       </Canvas>
 
@@ -778,7 +876,6 @@ export default function RootGame({ setShowGame, username, userId }) {
       {/* 📊 HUD (Head-Up Display) ATAS */}
       {/* ========================================= */}
       <div className="absolute top-8 w-full flex z-40 justify-between items-start px-4 pointer-events-none">
-        {/* Kiri: Tombol Pengaturan, Tombol Leaderboard (Tampil saat tidak main) */}
         <div className="flex gap-2.5 items-start pointer-events-auto">
           <div className="flex flex-col gap-2">
             <button
@@ -787,8 +884,6 @@ export default function RootGame({ setShowGame, username, userId }) {
             >
               <Settings size={24} className="text-amber-300 fill-yellow-100" />
             </button>
-
-            {/* 👈 TOMBOL LEADERBOARD BARU (Hanya muncul jika game tidak sedang dimainkan) */}
             {!isPlaying && (
               <button
                 onClick={() => setShowLeaderboard(true)}
@@ -799,8 +894,6 @@ export default function RootGame({ setShowGame, username, userId }) {
             )}
           </div>
         </div>
-
-        {/* Tengah: Jarak */}
         <div className="flex flex-col items-center pointer-events-auto">
           <div className="bg-sky-200/50 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/50 shadow-sm flex items-center gap-3">
             <Map size={24} className="text-rose-500 fill-yellow-100" />
@@ -815,8 +908,6 @@ export default function RootGame({ setShowGame, username, userId }) {
             Distance
           </span>
         </div>
-
-        {/* Kanan: Air */}
         <div className="flex flex-col items-center pointer-events-auto">
           <div className="bg-sky-200/50 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/50 shadow-sm flex items-center gap-3">
             <Droplet size={24} className="text-blue-500" fill="#38bdf8" />
@@ -834,11 +925,10 @@ export default function RootGame({ setShowGame, username, userId }) {
       </div>
 
       {/* ========================================= */}
-      {/* 🏁 OVERLAY MENU (Belum Main & Game Over) */}
+      {/* 🏁 OVERLAY MENU */}
       {/* ========================================= */}
       {!isPlaying && (
         <div className="absolute inset-0 bg-sky-900/40 backdrop-blur-sm flex flex-col items-center justify-center p-8 z-30 animate-in fade-in duration-500 text-center pointer-events-none">
-          {/* Tambahkan pointer-events-auto pada kotak putih agar bisa diklik, sisa layar background tetap tembus */}
           {gameOver ? (
             <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center w-full animate-in zoom-in-95 duration-300 pointer-events-auto mt-20">
               <div className="w-20 h-20 bg-rose-100 rounded-3xl flex items-center justify-center mb-4">
@@ -867,14 +957,11 @@ export default function RootGame({ setShowGame, username, userId }) {
                   </span>
                 </div>
               </div>
-
-              {/* Pesan Loading/Saving */}
               {isSaving && (
                 <div className="text-sm font-bold text-blue-500 animate-pulse mb-3">
                   Menyimpan skor ke Leaderboard...
                 </div>
               )}
-
               <button
                 onClick={startGame}
                 disabled={isSaving}
@@ -913,7 +1000,7 @@ export default function RootGame({ setShowGame, username, userId }) {
                 onClick={startGame}
                 className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 px-8 rounded-2xl flex justify-center items-center gap-2 text-lg shadow-[0_8px_0_#15803d] active:translate-y-2 active:shadow-none transition-all"
               >
-                <Play size={22} fill="currentColor" /> MULAI GAME
+                <Play size={22} fill="currentColor" /> MAIN SEKARANG
               </button>
             </div>
           )}
