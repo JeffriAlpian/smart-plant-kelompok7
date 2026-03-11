@@ -199,6 +199,7 @@ function GameScene({
   onScoreUpdate,
   onDistanceUpdate,
   playerLane,
+  isPaused,
 }) {
   const rocksRef = useRef([]);
   const watersRef = useRef([]);
@@ -237,7 +238,7 @@ function GameScene({
 
   useFrame(() => {
     const state = gameState.current;
-    if (!state.isAlive || !isPlaying) return;
+    if (!state.isAlive || !isPlaying || isPaused) return;
 
     state.frames++;
     state.speedMultiplier += 0.0003;
@@ -250,7 +251,6 @@ function GameScene({
         linesGroupRef.current.position.z = 0;
     }
 
-    // Spawn Rintangan
     const spawnRate = Math.max(25, 60 - Math.floor(state.frames / 100));
     if (state.frames % spawnRate === 0) {
       const spawnSpeed = 0.2 + state.speedMultiplier * 0.05;
@@ -770,6 +770,7 @@ export default function RootGame({ setShowGame, username, userId }) {
           onScoreUpdate={handleScoreUpdate}
           onDistanceUpdate={handleDistanceUpdate}
           playerLane={playerLane}
+          isPaused={showSetting}
         />
       </Canvas>
 

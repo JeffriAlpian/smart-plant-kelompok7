@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
 import {
   Droplet,
   Bot,
@@ -9,8 +9,12 @@ import {
   Activity,
 } from "lucide-react";
 
-// --- ANIMASI HUJAN ---
-const RainAnimation = () => (
+// KONSTANTA
+const MOISTURE_THRESHOLD = 30;
+const WATERING_DURATION = 5000; // 5 detik
+
+// --- ANIMASI HUJAN (Dioptimalkan dengan memo) ---
+const RainAnimation = memo(() => (
   <div className="absolute inset-0 -top-12 overflow-hidden pointer-events-none z-30 flex justify-center w-full h-75">
     <style>{`
       @keyframes rainDrop {
@@ -38,17 +42,13 @@ const RainAnimation = () => (
       />
     ))}
   </div>
-);
+));
 
-// --- KARAKTER PET TERAKOTA BARU MENGGUNAKAN GAMBAR/GIF---
-const KawaiiPlant = ({ moisture, isWatering, currentTime}) => {
-  const isThirsty = moisture < 30;
+// --- KARAKTER PET (Dioptimalkan dengan memo) ---
+// Prop currentTime diganti menjadi isNight agar tidak re-render tiap detik
+const KawaiiPlant = memo(({ moisture, isWatering, isNight }) => {
+  const isThirsty = moisture < MOISTURE_THRESHOLD;
 
-  const currentHour = currentTime.getHours();
-  const isNight = currentHour >= 18 || currentHour < 6;
-
-  // Tentukan path gambar (pastikan file ada di folder public/)
-  // Jika kamu punya 3 GIF berbeda, kamu bisa ubah logikanya di sini!
   let petImage = "/plant/3.gif";
   if (isWatering) petImage = "/plant/2.gif";
   else if (isThirsty) petImage = "/plant/1.gif";
@@ -63,7 +63,7 @@ const KawaiiPlant = ({ moisture, isWatering, currentTime}) => {
         }`}
       ></div>
 
-      {/* GAMBAR PET KAMU DI SINI */}
+      {/* Gambar Pet */}
       <div className="z-10 relative">
         <img
           src={petImage}
@@ -86,39 +86,50 @@ const KawaiiPlant = ({ moisture, isWatering, currentTime}) => {
       </div>
     </div>
   );
-};
+});
 
 // --- KOMPONEN UTAMA ---
 const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
   const [isWatering, setIsWatering] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Perbaikan Interval: Cukup simpan status siang/malam, bukan waktu detail
+  const [isNight, setIsNight] = useState(() => {
+    const hour = new Date().getHours();
+    return hour >= 18 || hour < 6;
+  });
 
-  const threshold = 30;
-  const cooldown = 30000;
+  const waterTimeoutRef = useRef(null);
 
   const safeMoisture = Math.min(100, Math.max(0, device.moisture || 0));
-  const isThirsty = safeMoisture < threshold;
+  const isThirsty = safeMoisture < MOISTURE_THRESHOLD;
 
-  // --- WAKTU & TEMA ---
+  // --- WAKTU & TEMA (Dioptimalkan) ---
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    // Mengecek setiap 1 menit (60000ms) alih-alih 1 detik
+    const timer = setInterval(() => {
+      const hour = new Date().getHours();
+      setIsNight(hour >= 18 || hour < 6);
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // ✅ GUNAKAN INI UNTUK TOMBOL "SIRAM MANUAL" DI LAYAR
+  // Membersihkan timeout jika komponen dihapus saat sedang menyiram
+  useEffect(() => {
+    return () => {
+      if (waterTimeoutRef.current) clearTimeout(waterTimeoutRef.current);
+    };
+  }, []);
+
   const handleManualClick = async () => {
-    if (isWatering) return; // Mencegah spam klik bertubi-tubi
+    if (isWatering) return;
 
-    setIsWatering(true); // Ubah status tombol jadi "Sedang Menyiram..." (disable)
-
-    // onWater() di sini memanggil fungsi handleWaterDevice yang kita buat sebelumnya
-    // (yang isinya: updateDoc waterCommand: true)
+    setIsWatering(true);
     await onWater();
 
-    setTimeout(() => {
+    waterTimeoutRef.current = setTimeout(() => {
       setIsWatering(false);
-    }, 5000);
+    }, WATERING_DURATION);
   };
 
   const triggerDelete = async () => {
@@ -143,22 +154,10 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
 
   const getPetMood = () => {
     if (isWatering)
-      return (
-        <>
-          <Sparkles size={16} className="inline mr-1 text-blue-500" /> Wuuusshh!
-        </>
-      );
+      return <><Sparkles size={16} className="inline mr-1 text-blue-500" /> Wuuusshh!</>;
     if (isThirsty)
-      return (
-        <>
-          <Frown size={16} className="inline mr-1" /> Help!
-        </>
-      );
-    return (
-      <>
-        <Smile size={16} className="inline mr-1" /> Nyaman
-      </>
-    );
+      return <><Frown size={16} className="inline mr-1" /> Help!</>;
+    return <><Smile size={16} className="inline mr-1" /> Nyaman</>;
   };
 
   return (
@@ -189,7 +188,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
         </div>
 
         {isWatering && <RainAnimation />}
-        <KawaiiPlant moisture={safeMoisture} isWatering={isWatering} currentTime={currentTime} />
+        <KawaiiPlant moisture={safeMoisture} isWatering={isWatering} isNight={isNight} />
       </div>
 
       {/* SECTION KARTU KONTROL */}
@@ -203,9 +202,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
         >
           <Trash2
             size={18}
-            className={`${
-              isDeleting ? "animate-spin" : "group-hover:scale-110"
-            }`}
+            className={`${isDeleting ? "animate-spin" : "group-hover:scale-110"}`}
           />
         </button>
 
@@ -221,17 +218,13 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
           <p className="text-white/80 font-bold text-xs tracking-[0.25em] uppercase mt-2 flex items-center justify-center gap-1.5">
             <Activity
               size={12}
-              className={
-                isThirsty && !isWatering
-                  ? "animate-pulse text-red-300"
-                  : "text-green-300"
-              }
+              className={isThirsty && !isWatering ? "animate-pulse text-red-300" : "text-green-300"}
             />
             ID • {device.id}
           </p>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar (Perbaikan class bg-gradient-to) */}
         <div className="w-full bg-black/20 rounded-full h-6 backdrop-blur-md overflow-hidden border border-white/20 p-1 shadow-inner relative">
           <div
             className={`h-full rounded-full transition-all duration-1000 ease-out relative shadow-sm 
@@ -286,9 +279,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
                   device.autoMode ? "translate-x-7" : "translate-x-0"
                 }`}
               >
-                {device.autoMode && (
-                  <Bot size={11} className="text-green-500" />
-                )}
+                {device.autoMode && <Bot size={11} className="text-green-500" />}
               </div>
             </div>
           </div>
@@ -306,17 +297,13 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
             }`}
         >
           {!(isWatering || device.autoMode) && (
-            <div className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 group-hover:animate-[shimmer_1.5s_infinite] bg-linear-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 z-0"></div>
+            <div className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/50 to-transparent transform -skew-x-12 z-0"></div>
           )}
 
           <span className="relative z-10 flex items-center gap-2">
             {isWatering ? (
               <>
-                <Droplet
-                  size={22}
-                  className="animate-bounce text-blue-400"
-                  fill="currentColor"
-                />{" "}
+                <Droplet size={22} className="animate-bounce text-blue-400" fill="currentColor" />{" "}
                 MENYIRAM...
               </>
             ) : device.autoMode ? (
@@ -325,10 +312,7 @@ const VaseCard = ({ device, onWater, onDelete, onToggleAuto }) => {
               </>
             ) : (
               <>
-                <Droplet
-                  size={22}
-                  className="group-hover:scale-110 transition-transform"
-                />{" "}
+                <Droplet size={22} className="group-hover:scale-110 transition-transform" />{" "}
                 SIRAM SEKARANG
               </>
             )}
