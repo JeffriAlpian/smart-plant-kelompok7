@@ -24,6 +24,7 @@ import Signup from "./components/Signup";
 import VaseCard from "./VaseCard";
 import QRScanner from "./components/QRScanner";
 import HistoryTab from "./components/HistoryTab";
+import RootGame from "./components/RootGame";
 
 // --- Ikon ---
 import {
@@ -40,6 +41,9 @@ import {
   Sun,
   Star,
   Award,
+  Gamepad2, // 👈 Ikon baru untuk game
+  Trophy,
+  Droplet,
 } from "lucide-react";
 
 export default function App() {
@@ -55,6 +59,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Home");
   const [showScanner, setShowScanner] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 👈 State baru untuk menampilkan halaman game
+  const [showGame, setShowGame] = useState(false);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     return localStorage.getItem("notif_enabled") === "true";
@@ -131,14 +138,10 @@ export default function App() {
     try {
       await setDoc(
         doc(db, "devices", deviceId),
-        {
-          waterCommand: true,
-        },
+        { waterCommand: true },
         { merge: true },
       );
-
       console.log("✅ Perintah siram berhasil dikirim ke Wemos!");
-      // alert("Perintah terkirim! Pot sedang menyiram...");
     } catch (error) {
       console.error("❌ Gagal mengirim perintah siram:", error);
     }
@@ -158,11 +161,7 @@ export default function App() {
 
   const handleToggleNotification = async () => {
     if (!currentUser) return;
-
-    // 1. Simpan nilai tujuan ke variabel
     const newValue = !notificationsEnabled;
-
-    // 2. Ubah UI secara instan agar terasa responsif tanpa menunggu loading
     setNotificationsEnabled(newValue);
     localStorage.setItem("notif_enabled", newValue.toString());
 
@@ -170,7 +169,6 @@ export default function App() {
       const userRef = doc(db, "users", currentUser.uid);
 
       if (newValue === true) {
-        // ===== LOGIKA MENGHIDUPKAN NOTIFIKASI (ON) =====
         let currentToken = "";
 
         if (Capacitor.isNativePlatform()) {
@@ -191,17 +189,14 @@ export default function App() {
           }
 
           if (permStatus.receive === "granted") {
-            // ⚠️ PERBAIKAN: Pasang Pendengar DULU, baru panggil register()
             currentToken = await new Promise(async (resolve, reject) => {
               const regListener = await PushNotifications.addListener(
                 "registration",
                 (token) => {
                   resolve(token.value);
-                  // Hapus hanya pendengar pendaftaran ini, JANGAN hapus semua
                   if (regListener) regListener.remove();
                 },
               );
-
               const errListener = await PushNotifications.addListener(
                 "registrationError",
                 (error) => {
@@ -209,8 +204,6 @@ export default function App() {
                   if (errListener) errListener.remove();
                 },
               );
-
-              // Setalah pendengar siap, baru perintahkan HP membuat token
               await PushNotifications.register();
             });
           } else {
@@ -220,7 +213,6 @@ export default function App() {
             return;
           }
         } else {
-          // Logika Web/Browser
           const messaging = getMessaging();
           const permission = await Notification.requestPermission();
           if (permission === "granted") {
@@ -236,13 +228,11 @@ export default function App() {
           }
         }
 
-        // Simpan token ke Firebase
         if (currentToken) {
           localStorage.setItem("my_fcm_token", currentToken);
           await updateDoc(userRef, { fcmTokens: arrayUnion(currentToken) });
         }
       } else {
-        // ===== LOGIKA MEMATIKAN NOTIFIKASI (OFF) =====
         const savedToken = localStorage.getItem("my_fcm_token");
         if (savedToken) {
           await updateDoc(userRef, { fcmTokens: arrayRemove(savedToken) });
@@ -250,11 +240,8 @@ export default function App() {
         }
       }
     } catch (error) {
-      // ⚠️ PERBAIKAN: Munculkan log error agar kita tahu apa yang salah
       console.error("❌ Gagal memproses notifikasi:", error);
       alert("Gagal menyimpan pengaturan notifikasi ke server. Coba lagi.");
-
-      // Kembalikan visual tombol ke posisi semula karena proses di atas gagal
       setNotificationsEnabled(!newValue);
       localStorage.setItem("notif_enabled", (!newValue).toString());
     }
@@ -269,6 +256,29 @@ export default function App() {
     );
   }
 
+  // // =========================================================
+  // // 🎮 HALAMAN GAME EKSKLUSIF (Menutupi seluruh layar)
+  // // =========================================================
+
+  if (showGame) {
+    const username = currentUser?.email
+      ? currentUser.email.split("@")[0]
+      : "Player";
+
+    return (
+      <div className="fixed inset-0 w-screen h-screen bg-gray-900 flex items-center justify-center z-50 overflow-hidden">
+        <RootGame
+          setShowGame={setShowGame}
+          username={username}
+          userId={currentUser.uid}
+        />
+      </div>
+    );
+  }
+
+  // =========================================================
+  // 📱 HALAMAN UTAMA APLIKASI
+  // =========================================================
   return (
     <div
       className={`h-screen font-sans flex justify-center text-white sm:py-6 selection:bg-green-300 bg-gray-900 transition-colors duration-1000 pb-40`}
@@ -276,17 +286,15 @@ export default function App() {
       <div
         className={`w-full bg-linear-to-b ${bgGradient} relative overflow-hidden sm:rounded-[3rem] sm:border-8 sm:border-black/20 sm:shadow-2xl flex flex-col h-dvh sm:h-212.5 transition-all duration-1000 ease-in-out`}
       >
-        {/* Dekorasi Latar Belakang */}
         <BackgroundDecorations isNight={isNight} />
 
-        {/* Header Waktu */}
         <div className="pt-12 pb-2 px-6 relative z-10 flex flex-col items-center shrink-0">
           <div className="w-full flex justify-between items-center mb-4">
             <span className="bg-black/20 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/20 text-xs font-black tracking-widest text-white/90 uppercase flex gap-2 items-center shadow-lg">
               <Sprout
                 size={14}
                 className={isNight ? "text-indigo-300" : "text-green-200"}
-              />
+              />{" "}
               Virtual Pet
             </span>
           </div>
@@ -298,9 +306,16 @@ export default function App() {
               {time.ampm}
             </span>
           </div>
+
+          {/* 🎮 Tombol Masuk Ke Game */}
+          <button
+            onClick={() => setShowAddForm(true)}
+            className=" absolute top-3 right-3 bg-linear-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-black p-3 rounded-2xl shadow-[0_6px_0_rgba(180,83,9,1)] active:translate-y-1 active:shadow-none transition-all flex justify-center items-center gap-3"
+          >
+            <Plus size={30} />
+          </button>
         </div>
 
-        {/* Konten Tab Aktif */}
         {activeTab === "Home" && (
           <HomeTabContent
             devices={devices}
@@ -328,7 +343,7 @@ export default function App() {
         )}
 
         {/* Navigasi Bawah */}
-        <div className="absolute bottom-4 left-6 right-6 bg-white/10 backdrop-blur-xl px-4 py-3 rounded-[2rem] flex justify-between items-center border border-white/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] z-50">
+        <div className="absolute bottom-4 left-6 right-6 bg-white/10 backdrop-blur-xl px-4 py-3 rounded-4xl flex justify-between items-center border border-white/20 shadow-[0_15px_30px_rgba(0,0,0,0.3)] z-50">
           <NavIcon
             Icon={Home}
             label="Home"
@@ -345,16 +360,15 @@ export default function App() {
           />
 
           <div
-            onClick={() => setShowAddForm(true)}
+            onClick={() => setShowGame(true)}
             className={`relative -top-6 ${
               isNight
                 ? "bg-linear-to-b from-indigo-400 to-purple-500 shadow-[0_8px_20px_rgba(99,102,241,0.5)] border-indigo-300"
                 : "bg-linear-to-b from-green-300 to-green-500 shadow-[0_8px_20px_rgba(74,222,128,0.5)] border-[#A3D180]"
             } w-14 h-14 rounded-full flex items-center justify-center border-[3px] cursor-pointer transform hover:scale-110 active:scale-95 transition-all text-white`}
           >
-            <Plus size={28} strokeWidth={3} className="drop-shadow-lg" />
+            <Gamepad2 size={28} strokeWidth={3} className="drop-shadow-lg" />
           </div>
-
           <NavIcon
             Icon={AlarmClock}
             label="Alarm"
@@ -371,7 +385,6 @@ export default function App() {
           />
         </div>
 
-        {/* Modal Tambah Pot */}
         {showAddForm && (
           <AddDeviceModal
             isNight={isNight}
@@ -382,8 +395,6 @@ export default function App() {
             setShowScanner={setShowScanner}
           />
         )}
-
-        {/* Scanner QR */}
         {showScanner && (
           <QRScanner
             onClose={() => setShowScanner(false)}
@@ -399,7 +410,7 @@ export default function App() {
 }
 
 // ==========================================
-// KOMPONEN-KOMPONEN KECIL (DIEKSTRAK AGAR RAPI)
+// KOMPONEN-KOMPONEN KECIL
 // ==========================================
 
 const HomeTabContent = ({
@@ -494,7 +505,24 @@ const AlarmTabContent = ({
 );
 
 const ProfileTabContent = ({ currentUser, devices, logout }) => {
-  // 🧠 LOGIKA LEVEL: Dinamis berdasarkan jumlah pot (devices)
+  // State untuk menyimpan skor tertinggi
+  const [highScore, setHighScore] = useState({ distance: 0, water: 0 });
+
+  // Listener untuk mengambil skor tertinggi dari Firestore
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Kita arahkan ke dokumen user di collection leaderboard
+    const scoreRef = doc(db, "leaderboard", currentUser.uid);
+    const unsubscribe = onSnapshot(scoreRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setHighScore(docSnap.data());
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
   const getUserLevel = (deviceCount) => {
     if (deviceCount === 0) return { level: 1, title: "Pemula" };
     if (deviceCount <= 2) return { level: 2, title: "Sprout" };
@@ -504,24 +532,19 @@ const ProfileTabContent = ({ currentUser, devices, logout }) => {
   };
 
   const userStats = getUserLevel(devices?.length || 0);
-
-  // Mencegah error jika email kosong/belum ter-load
   const username = currentUser?.email
     ? currentUser.email.split("@")[0]
     : "User";
 
   return (
     <div className="flex-1 min-h-0 w-full px-6 pt-10 pb-40 overflow-y-auto animate-fadeIn flex flex-col items-center no-scrollbar z-10">
-      {/* 🖼️ Avatar Section */}
       <div className="relative w-28 h-28 bg-linear-to-br from-white/30 to-white/10 backdrop-blur-md rounded-full flex items-center justify-center mb-5 border-[3px] border-white/40 shadow-[0_0_40px_rgba(255,255,255,0.2)] text-white">
         <User size={54} strokeWidth={1.5} />
-        {/* Badge Level Kecil di pojok Avatar */}
         <div className="absolute bottom-0 right-0 bg-[#A3D180] text-[#2c3e50] p-1.5 rounded-full border-2 border-white shadow-lg">
           <Award size={18} fill="currentColor" />
         </div>
       </div>
 
-      {/* 👤 Nama & Gelar */}
       <h2 className="text-3xl font-black text-white drop-shadow-md capitalize">
         {username}
       </h2>
@@ -529,12 +552,9 @@ const ProfileTabContent = ({ currentUser, devices, logout }) => {
         Pecinta Tanaman
       </p>
 
-      {/* 📊 Kartu Statistik */}
-      <div className="w-full mt-8 mb-8 bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl flex justify-around text-center relative overflow-hidden">
-        {/* Efek kilauan kaca di dalam kartu */}
+      {/* Statistik Pot & Level */}
+      <div className="w-full mt-8 mb-4 bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-xl flex justify-around text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1/2 bg-linear-to-b from-white/10 to-transparent"></div>
-
-        {/* Info Total Pot */}
         <div className="relative z-10 flex flex-col items-center gap-1">
           <span className="text-4xl font-black text-white drop-shadow-sm">
             {devices?.length || 0}
@@ -543,11 +563,7 @@ const ProfileTabContent = ({ currentUser, devices, logout }) => {
             Total Pot
           </span>
         </div>
-
-        {/* Garis Pemisah */}
         <div className="w-px h-12 bg-white/20 my-auto self-center"></div>
-
-        {/* Info Level (Sekarang Dinamis!) */}
         <div className="relative z-10 flex flex-col items-center gap-1">
           <span className="text-4xl font-black text-[#ffffff] drop-shadow-[0_0_12px_rgba(163,209,128,0.4)]">
             Lvl {userStats.level}
@@ -558,10 +574,43 @@ const ProfileTabContent = ({ currentUser, devices, logout }) => {
         </div>
       </div>
 
-      {/* 🚪 Tombol Keluar */}
+      {/* 🏆 KARTU SKOR TERTINGGI GAME */}
+      <div className="w-full mb-8 bg-linear-to-r from-emerald-500/20 to-teal-500/20 backdrop-blur-xl rounded-3xl p-5 border border-emerald-400/30 shadow-[0_8px_30px_rgba(16,185,129,0.15)] flex justify-between items-center relative overflow-hidden transition-transform hover:scale-[1.02]">
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="bg-emerald-400/20 p-3 rounded-2xl border border-emerald-400/50 shadow-inner">
+            {/* Warna Trophy disesuaikan menjadi hijau neon yang menyala */}
+            <Trophy size={28} className="text-white" />
+          </div>
+          <div>
+            <span className="text-white/60 text-[10px] font-extrabold uppercase tracking-widest block mb-0.5">
+              Rekor Plant Run
+            </span>
+            <span className="text-2xl font-black text-white drop-shadow-sm">
+              {Math.floor(highScore.distance)}{" "}
+              <span className="text-sm text-white/60 font-bold">m</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end relative z-10">
+          <span className="text-white/80 text-[10px] font-bold uppercase mb-0.5 flex items-center gap-1">
+            {/* Warna icon air diubah sedikit agar selaras */}
+            <Droplet
+              size={10}
+              className="text-blue-700"
+              fill="currentColor"
+            />{" "}
+            Air Terkumpul
+          </span>
+          {/* Warna teks air dibuat cyan agar kontras dengan background hijau */}
+          <span className="text-xl font-black text-blue-700 drop-shadow-sm">
+            {highScore.water}
+          </span>
+        </div>
+      </div>
+
       <button
         onClick={logout}
-        className="group w-full bg-white/10 hover:bg-red-500/80 backdrop-blur-md text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-300 flex justify-center items-center gap-3 border border-white/20 hover:border-red-400 active:scale-95 mt-auto"
+        className="group w-full bg-white/10 hover:bg-rose-500/80 backdrop-blur-md text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-300 flex justify-center items-center gap-3 border border-white/20 hover:border-rose-400 active:scale-95 mt-auto"
       >
         <LogOut
           size={22}
@@ -686,7 +735,6 @@ const AddDeviceModal = ({
                 ? "bg-slate-600 text-indigo-300 hover:bg-indigo-500 hover:text-white border-slate-500"
                 : "bg-white text-[#81B95B] hover:bg-[#81B95B] hover:text-white border-gray-200"
             } rounded-xl shadow-sm transition-colors border`}
-            title="Scan QR Code"
           >
             <QrCode size={22} strokeWidth={2.5} />
           </button>
