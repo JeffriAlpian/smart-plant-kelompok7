@@ -14,13 +14,13 @@ const char *apSSID = "SmartPot_Config";
 const char *apPASS = NULL;
 
 // ⚠️ MASUKKAN URL GOOGLE SCRIPT KAMU DI SINI:
-String googleScriptUrl = "TARUH_URL_GOOGLE_SCRIPT_KAMU_DISINI";
+String googleScriptUrl = "https://script.google.com/macros/s/AKfycbwUo4ivzssJyugOwJV4OH7KK1oLomjpLLHg1fOleV0LjgditQ5bb89x13sGD2a6wogU/exec";
 
 // =============================
-// 🔹 PIN KONFIGURASI
+// 🔹 PIN KONFIGURASI (KHUSUS WEMOS D1 MINI)
 // =============================
-const int sensorPin = A0;
-const int pumpPin = 5;
+const int sensorPin = A0; // Pin Analog untuk Soil Moisture Sensor
+const int pumpPin = D1;   // Pin D1 (GPIO5) terhubung ke Relay Pompa Air
 
 // =============================
 // 🔹 OBJEK GLOBAL
@@ -61,20 +61,17 @@ String deviceId = "";
 #define ADDR_API 300
 #define ADDR_DEV 400
 
-void saveToEEPROM(int addr, const String &data)
-{
+void saveToEEPROM(int addr, const String &data) {
   for (unsigned int i = 0; i < data.length(); i++)
     EEPROM.write(addr + i, data[i]);
   EEPROM.write(addr + data.length(), '\0');
   EEPROM.commit();
 }
 
-String readFromEEPROM(int addr)
-{
+String readFromEEPROM(int addr) {
   String data = "";
   char ch;
-  for (int i = addr; i < addr + 100; i++)
-  {
+  for (int i = addr; i < addr + 100; i++) {
     ch = EEPROM.read(i);
     if (ch == '\0')
       break;
@@ -84,10 +81,9 @@ String readFromEEPROM(int addr)
 }
 
 // =========================
-// 🌐 HALAMAN WEB KONFIGURASI (Disingkat untuk menghemat ruang, sama seperti sebelumnya)
+// 🌐 HALAMAN WEB KONFIGURASI
 // =========================
-void handleRoot()
-{
+void handleRoot() {
   String html = F("<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>body{font-family:Arial;padding:20px}input{width:100%;padding:10px;margin:5px 0}input[type='submit']{background:#27ae60;color:#fff}</style></head><body><h2>🌱 Setup Smart Pot</h2><form action='/save' method='POST'><label>SSID:</label><input type='text' name='ssid' value='");
   html += ssid;
   html += F("' required><label>Password:</label><input type='password' name='password' value='");
@@ -102,18 +98,13 @@ void handleRoot()
   server.send(200, "text/html", html);
 }
 
-void handleSave()
-{
+void handleSave() {
   ssid = server.arg("ssid");
   password = server.arg("password");
   projectId = server.arg("proj");
   apiKey = server.arg("api");
   deviceId = server.arg("dev");
-  ssid.trim();
-  password.trim();
-  projectId.trim();
-  apiKey.trim();
-  deviceId.trim();
+  ssid.trim(); password.trim(); projectId.trim(); apiKey.trim(); deviceId.trim();
   saveToEEPROM(ADDR_SSID, ssid);
   saveToEEPROM(ADDR_PASS, password);
   saveToEEPROM(ADDR_PROJ, projectId);
@@ -124,8 +115,7 @@ void handleSave()
   ESP.restart();
 }
 
-void startAPConfig()
-{
+void startAPConfig() {
   Serial.println("\n🔧 MODE KONFIGURASI AKTIF!");
   apModeActive = true;
   WiFi.mode(WIFI_AP);
@@ -137,8 +127,7 @@ void startAPConfig()
   server.begin();
 }
 
-String getEpochMillis()
-{
+String getEpochMillis() {
   time_t now = time(nullptr);
   unsigned long long millisec = (unsigned long long)now * 1000ULL;
   char buffer[32];
@@ -149,8 +138,7 @@ String getEpochMillis()
 // =============================
 // 🚀 FUNGSI FIREBASE & WEBHOOK
 // =============================
-void sendMoistureToFirestore(int moisture)
-{
+void sendMoistureToFirestore(int moisture) {
   String url = "https://firestore.googleapis.com/v1/projects/" + projectId + "/databases/(default)/documents/devices/" + deviceId + "?updateMask.fieldPaths=moisture&key=" + apiKey;
   HTTPClient http;
   http.begin(secureClient, url);
@@ -163,16 +151,13 @@ void sendMoistureToFirestore(int moisture)
   http.end();
 }
 
-void readSettingsFromFirestore()
-{
+void readSettingsFromFirestore() {
   String url = "https://firestore.googleapis.com/v1/projects/" + projectId + "/databases/(default)/documents/devices/" + deviceId + "?key=" + apiKey;
   HTTPClient http;
   http.begin(secureClient, url);
-  if (http.GET() == 200)
-  {
+  if (http.GET() == 200) {
     StaticJsonDocument<1024> doc;
-    if (!deserializeJson(doc, http.getString()))
-    {
+    if (!deserializeJson(doc, http.getString())) {
       autoMode = doc["fields"]["autoMode"]["booleanValue"] | false;
       waterCommand = doc["fields"]["waterCommand"]["booleanValue"] | false;
     }
@@ -180,8 +165,7 @@ void readSettingsFromFirestore()
   http.end();
 }
 
-void recordWateringEvent()
-{
+void recordWateringEvent() {
   String url = "https://firestore.googleapis.com/v1/projects/" + projectId + "/databases/(default)/documents/devices/" + deviceId + "?updateMask.fieldPaths=waterCommand&updateMask.fieldPaths=lastWaterTime&key=" + apiKey;
   HTTPClient http;
   http.begin(secureClient, url);
@@ -195,11 +179,8 @@ void recordWateringEvent()
   http.end();
 }
 
-// 🔔 FUNGSI KIRIM NOTIFIKASI KE GOOGLE SCRIPT
-void triggerNotifWebhook()
-{
-  if (googleScriptUrl == "https://script.google.com/macros/s/AKfycbwUo4ivzssJyugOwJV4OH7KK1oLomjpLLHg1fOleV0LjgditQ5bb89x13sGD2a6wogU/exec")
-  {
+void triggerNotifWebhook() {
+  if (googleScriptUrl == "https://script.google.com/macros/s/AKfycbwUo4ivzssJyugOwJV4OH7KK1oLomjpLLHg1fOleV0LjgditQ5bb89x13sGD2a6wogU/exec" || googleScriptUrl == "") {
     Serial.println("⚠️ URL Webhook belum diisi! Lewati kirim notif.");
     return;
   }
@@ -207,17 +188,11 @@ void triggerNotifWebhook()
   Serial.println("🔔 Mengirim perintah Notifikasi ke Google Script...");
   HTTPClient http;
   http.begin(secureClient, googleScriptUrl);
-
-  // Script Google selalu mengalihkan URL (Redirect), jadi kita harus izinkan Wemos mengikutinya
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-
   int httpCode = http.GET();
-  if (httpCode > 0)
-  {
+  if (httpCode > 0) {
     Serial.printf("✅ Notifikasi sukses ditembak! (Code: %d)\n", httpCode);
-  }
-  else
-  {
+  } else {
     Serial.printf("❌ Gagal menembak Webhook: %s\n", http.errorToString(httpCode).c_str());
   }
   http.end();
@@ -226,12 +201,11 @@ void triggerNotifWebhook()
 // =============================
 // 💦 FUNGSI POMPA AIR
 // =============================
-void activatePump()
-{
+void activatePump() {
   Serial.println("💦 MEMULAI PENYIRAMAN...");
-  digitalWrite(pumpPin, HIGH);
-  delay(3000);
-  digitalWrite(pumpPin, LOW);
+  digitalWrite(pumpPin, HIGH); // Nyalakan Relay (Pompa)
+  delay(3000);                 // Siram selama 3 detik
+  digitalWrite(pumpPin, LOW);  // Matikan Relay (Pompa)
   lastWaterTimeMillis = millis();
   recordWateringEvent();
 
@@ -245,8 +219,7 @@ void activatePump()
 // =============================
 // ⚙️ SETUP UTAMA
 // =============================
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
   pinMode(pumpPin, OUTPUT);
@@ -258,32 +231,24 @@ void setup()
   projectId = readFromEEPROM(ADDR_PROJ);
   apiKey = readFromEEPROM(ADDR_API);
   deviceId = readFromEEPROM(ADDR_DEV);
-  ssid.trim();
-  password.trim();
-  projectId.trim();
-  apiKey.trim();
-  deviceId.trim();
+  ssid.trim(); password.trim(); projectId.trim(); apiKey.trim(); deviceId.trim();
 
   if (ssid == "" || projectId == "" || deviceId == "")
     startAPConfig();
-  else
-  {
+  else {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), password.c_str());
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 30)
-    {
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
       delay(500);
       attempts++;
     }
     if (WiFi.status() != WL_CONNECTED)
       startAPConfig();
-    else
-    {
+    else {
       configTime(0, 0, "pool.ntp.org", "time.nist.gov");
       time_t now = time(nullptr);
-      while (now < 24 * 3600)
-      {
+      while (now < 24 * 3600) {
         delay(500);
         now = time(nullptr);
       }
@@ -294,22 +259,17 @@ void setup()
 // =============================
 // 🔁 LOOP UTAMA
 // =============================
-void loop()
-{
-  if (apModeActive)
-  {
+void loop() {
+  if (apModeActive) {
     dnsServer.processNextRequest();
     server.handleClient();
     return;
   }
 
-  if (WiFi.status() == WL_CONNECTED)
-  {
+  if (WiFi.status() == WL_CONNECTED) {
     unsigned long currentMillis = millis();
 
-    // 1. RUTINITAS SETIAP 10 DETIK
-    if (currentMillis - lastSensorRead >= SENSOR_INTERVAL)
-    {
+    if (currentMillis - lastSensorRead >= SENSOR_INTERVAL) {
       lastSensorRead = currentMillis;
 
       int rawValue = analogRead(sensorPin);
@@ -319,37 +279,25 @@ void loop()
       sendMoistureToFirestore(currentMoisture);
       readSettingsFromFirestore();
 
-      // 🔥 LOGIKA TRIGGER NOTIFIKASI
-      if (currentMoisture < 30)
-      {
-        // Jika tanah kering (< 30%) dan notifikasi belum pernah dikirim
-        if (!isNotifSent)
-        {
-          triggerNotifWebhook(); // Panggil Google Script
-          isNotifSent = true;    // Kunci agar tidak spam tiap 10 detik
+      if (currentMoisture < 30) {
+        if (!isNotifSent) {
+          triggerNotifWebhook(); 
+          isNotifSent = true;    
         }
-      }
-      else
-      {
-        // Jika tanah sudah basah (>= 30%), buka kembali kunci notifikasinya
-        if (isNotifSent)
-        {
+      } else {
+        if (isNotifSent) {
           Serial.println("💧 Tanah sudah basah, mereset sistem notifikasi...");
           isNotifSent = false;
         }
       }
     }
 
-    // 2. LOGIKA PENYIRAMAN
     bool isCooldown = (currentMillis - lastWaterTimeMillis) < COOLDOWN_TIME;
 
-    if (waterCommand)
-    {
+    if (waterCommand) {
       waterCommand = false;
       activatePump();
-    }
-    else if (autoMode && currentMoisture < 30 && !isCooldown)
-    {
+    } else if (autoMode && currentMoisture < 30 && !isCooldown) {
       Serial.println("⚠️ Auto Pilot bekerja...");
       activatePump();
     }
